@@ -45,36 +45,43 @@
       </section>
 
       <section class="status-strip" aria-label="Configuración del reporte">
-        <label class="field">
-          <span>Evento</span>
-          <select id="eventFilter"></select>
-        </label>
-        <label class="field">
-          <span>Buscar alumno</span>
-          <input id="studentSearch" type="search" placeholder="Nombre o carrera" />
-        </label>
-        <label class="field wide">
-          <span>Alumno</span>
-          <select id="studentSelect"></select>
-        </label>
-        <label class="field event-field">
-          <span>Nuevo evento</span>
-          <div class="inline-control">
-            <input id="newEventInput" type="text" placeholder="Ej. Open House junio" />
-            <button id="addEventButton" class="ghost compact" type="button">Agregar</button>
+        <div class="status-row primary">
+          <label class="field event-picker">
+            <span>Evento</span>
+            <select id="eventFilter"></select>
+          </label>
+          <label class="field search-field">
+            <span>Buscar alumno</span>
+            <input id="studentSearch" type="search" placeholder="Nombre o carrera" />
+          </label>
+          <label class="field student-picker">
+            <span>Alumno</span>
+            <select id="studentSelect"></select>
+          </label>
+        </div>
+
+        <div class="status-row secondary">
+          <label class="field event-field">
+            <span>Crear evento</span>
+            <div class="inline-control">
+              <input id="newEventInput" type="text" placeholder="Ej. Open House junio" />
+              <button id="addEventButton" class="ghost compact" type="button">Agregar</button>
+            </div>
+          </label>
+          <div class="status-meta">
+            <div class="status-item">
+              <span>Examen</span>
+              <strong>EXANI II 60</strong>
+            </div>
+            <div class="status-item">
+              <span>Comparativo</span>
+              <strong>UADY 2025</strong>
+            </div>
           </div>
-        </label>
-        <div class="status-item">
-          <span>Examen</span>
-          <strong>EXANI II 60</strong>
-        </div>
-        <div class="status-item">
-          <span>Comparativo</span>
-          <strong>UADY 2025</strong>
-        </div>
-        <div class="actions">
-          <button id="printButton" type="button">Exportar PDF</button>
-          <button id="resetButton" class="ghost" type="button">Ver todos</button>
+          <div class="actions">
+            <button id="printButton" type="button">Exportar PDF</button>
+            <button id="resetButton" class="ghost" type="button">Ver todos</button>
+          </div>
         </div>
       </section>
 
