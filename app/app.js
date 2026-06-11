@@ -389,18 +389,36 @@ function setBar(element, score) {
 }
 
 function normalizeStudent(raw) {
+  const eventInfo = normalizeEventAndYear(raw.event, raw.year);
   return {
     id: raw.id,
     name: raw.name,
     career: raw.career || "Sin carrera",
-    event: raw.event || "Sin evento",
-    year: raw.year || "",
+    event: eventInfo.event,
+    year: eventInfo.year,
     scores: {
       ri: Number(raw.scores?.ri) || 0,
       cl: Number(raw.scores?.cl) || 0,
       pm: Number(raw.scores?.pm) || 0,
       global: Number(raw.scores?.global) || 0,
     },
+  };
+}
+
+function normalizeEventAndYear(eventValue, yearValue) {
+  const rawEvent = String(eventValue || "").trim() || "Sin evento";
+  const rawYear = String(yearValue || "").trim();
+  const eventYear = rawEvent.match(/\b(20\d{2})\b/)?.[1] || "";
+  const trustedYear = rawYear || eventYear;
+  let event = rawEvent;
+
+  if (eventYear && rawYear && eventYear !== rawYear) {
+    event = rawEvent.replace(/\b20\d{2}\b/, rawYear);
+  }
+
+  return {
+    event,
+    year: trustedYear,
   };
 }
 
