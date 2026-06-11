@@ -1,0 +1,543 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Reporte EXANI II | Misión Admisión</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="hero-panel">
+        <div class="brand-lockup">
+          <div class="brand-symbol">MA</div>
+          <div>
+            <strong>MISIÓN ADMISIÓN</strong>
+            <span>CURSOS PROPEDÉUTICOS</span>
+          </div>
+        </div>
+        <div class="hero-copy">
+          <p class="eyebrow">Misión Admisión</p>
+          <h1>Reporte de resultados</h1>
+          <p>Simulador EXANI II de áreas básicas</p>
+        </div>
+        <div class="hero-art" aria-hidden="true">
+          <span class="dot dot-one"></span>
+          <span class="dot dot-two"></span>
+          <span class="dot dot-three"></span>
+          <div class="chart-bars">
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+          </div>
+          <svg viewBox="0 0 220 120" role="img" aria-label="">
+            <path d="M14 100 C 62 102, 73 82, 96 79 S 132 48, 156 45 S 184 13, 207 17" />
+            <circle cx="96" cy="79" r="6" />
+            <circle cx="132" cy="48" r="6" />
+            <circle cx="156" cy="45" r="6" />
+            <circle cx="207" cy="17" r="6" />
+          </svg>
+        </div>
+      </section>
+
+      <section class="status-strip" aria-label="Configuración del reporte">
+        <label class="field">
+          <span>Evento</span>
+          <select id="eventFilter"></select>
+        </label>
+        <label class="field">
+          <span>Buscar alumno</span>
+          <input id="studentSearch" type="search" placeholder="Nombre o carrera" />
+        </label>
+        <label class="field wide">
+          <span>Alumno</span>
+          <select id="studentSelect"></select>
+        </label>
+        <label class="field event-field">
+          <span>Nuevo evento</span>
+          <div class="inline-control">
+            <input id="newEventInput" type="text" placeholder="Ej. Open House junio" />
+            <button id="addEventButton" class="ghost compact" type="button">Agregar</button>
+          </div>
+        </label>
+        <div class="status-item">
+          <span>Examen</span>
+          <strong>EXANI II 60</strong>
+        </div>
+        <div class="status-item">
+          <span>Comparativo</span>
+          <strong>UADY 2025</strong>
+        </div>
+        <div class="actions">
+          <button id="printButton" type="button">Exportar PDF</button>
+          <button id="resetButton" class="ghost" type="button">Ver todos</button>
+        </div>
+      </section>
+
+      <nav class="tabs" aria-label="Módulos">
+        <button class="tab active" type="button" data-tab="report">Reporte</button>
+        <button class="tab" type="button" data-tab="capture">Captura</button>
+        <button class="tab" type="button" data-tab="batch">Lote</button>
+        <button class="tab" type="button" data-tab="photo">Foto de hoja</button>
+        <button class="tab" type="button" data-tab="base">Base</button>
+      </nav>
+
+      <section class="view active" id="reportView" data-view="report">
+        <section class="section-heading">
+          <div>
+            <p class="eyebrow">Vista individual</p>
+            <h2 id="studentName">-</h2>
+            <p id="studentMeta" class="muted">-</p>
+          </div>
+          <div class="event-summary">
+            <span>Promedio del evento</span>
+            <strong id="eventAverage">-</strong>
+            <small id="eventMeta">Selecciona un evento</small>
+          </div>
+        </section>
+
+        <section class="kpi-grid">
+          <article class="kpi-card accent-purple">
+            <span>Puntaje global</span>
+            <strong id="globalScore">-</strong>
+            <small>Escala tipo CENEVAL</small>
+          </article>
+          <article class="kpi-card accent-mint">
+            <span>Punto de corte</span>
+            <strong id="cutoffScore">-</strong>
+            <small>Referencia UADY 2025</small>
+          </article>
+          <article class="kpi-card accent-red">
+            <span>Diferencia</span>
+            <strong id="cutoffDelta">-</strong>
+            <small>Contra carrera elegida</small>
+          </article>
+        </section>
+
+        <section class="report-grid" id="report">
+          <article class="panel cutoff-card">
+            <div class="panel-header">
+              <p class="card-title">Lectura contra punto de corte</p>
+              <span class="badge">UADY 2025</span>
+            </div>
+            <div class="illustrated-panel-body">
+              <div class="panel-copy">
+                <div class="meter" aria-hidden="true">
+                  <span id="cutoffMeter"></span>
+                </div>
+                <p id="cutoffMessage" class="message">-</p>
+              </div>
+              <img class="panel-character brain-art" src="./assets/cerebro.png" alt="" />
+            </div>
+          </article>
+
+          <article class="panel comparison-card">
+            <div class="panel-header">
+              <p class="card-title">Comparativo del simulador</p>
+            </div>
+            <div class="illustrated-panel-body">
+              <div class="comparison-bars">
+                <div class="bar-row">
+                  <span>Tu puntaje</span>
+                  <div class="bar-track"><span id="studentBar" class="bar student"></span></div>
+                  <strong id="studentBarValue">-</strong>
+                </div>
+                <div class="bar-row">
+                  <span>Promedio evento</span>
+                  <div class="bar-track"><span id="eventBar" class="bar event"></span></div>
+                  <strong id="eventBarValue">-</strong>
+                </div>
+                <div class="bar-row">
+                  <span>Promedio histórico</span>
+                  <div class="bar-track"><span id="historyBar" class="bar history"></span></div>
+                  <strong id="historyBarValue">-</strong>
+                </div>
+              </div>
+              <img class="panel-character unicorn-art" src="./assets/unicornio.png" alt="" />
+            </div>
+          </article>
+        </section>
+
+        <section class="area-section">
+          <div class="section-title-row">
+            <h2>Resultados por área</h2>
+            <p>3 áreas básicas evaluadas en 60 reactivos.</p>
+          </div>
+          <div class="areas">
+            <article class="area-card" data-area="ri">
+              <div class="area-card-head">
+                <span>RI</span>
+                <img src="./assets/insignia-ri.png" alt="" />
+              </div>
+              <h3>Redacción indirecta</h3>
+              <strong id="riScore">-</strong>
+              <p id="riMessage">-</p>
+            </article>
+            <article class="area-card" data-area="cl">
+              <div class="area-card-head">
+                <span>CL</span>
+                <img src="./assets/insignia-cl.png" alt="" />
+              </div>
+              <h3>Comprensión lectora</h3>
+              <strong id="clScore">-</strong>
+              <p id="clMessage">-</p>
+            </article>
+            <article class="area-card" data-area="pm">
+              <div class="area-card-head">
+                <span>PM</span>
+                <img src="./assets/insignia-pm.png" alt="" />
+              </div>
+              <h3>Pensamiento matemático</h3>
+              <strong id="pmScore">-</strong>
+              <p id="pmMessage">-</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="panel insight">
+          <p class="card-title">Lectura para tutor/comercial</p>
+          <p id="advisorMessage">-</p>
+        </section>
+
+        <section class="print-report" id="printReport" aria-hidden="true">
+          <header class="print-header">
+            <div>
+              <strong>MISIÓN ADMISIÓN</strong>
+              <span>Reporte de resultados EXANI II</span>
+            </div>
+            <small>UADY 2025 · Simulador de 60 reactivos</small>
+            <img class="print-header-art" src="./assets/unicornio.png" alt="" />
+          </header>
+          <section class="print-student">
+            <div>
+              <span>Alumno</span>
+              <strong id="printStudentName">-</strong>
+            </div>
+            <div>
+              <span>Carrera</span>
+              <strong id="printStudentCareer">-</strong>
+            </div>
+            <div>
+              <span>Evento</span>
+              <strong id="printStudentEvent">-</strong>
+            </div>
+          </section>
+          <section class="print-kpis">
+            <div><span>Puntaje global</span><strong id="printGlobalScore">-</strong></div>
+            <div><span>Punto de corte</span><strong id="printCutoffScore">-</strong></div>
+            <div><span>Diferencia</span><strong id="printCutoffDelta">-</strong></div>
+            <div><span>Promedio evento</span><strong id="printEventAverage">-</strong></div>
+          </section>
+          <section class="print-columns">
+            <article class="print-illustrated print-cutoff-box">
+              <div>
+                <h3>Lectura contra punto de corte</h3>
+                <p id="printCutoffMessage">-</p>
+              </div>
+              <img src="./assets/cerebro.png" alt="" />
+            </article>
+            <article class="print-illustrated print-area-box">
+              <div>
+                <h3>Resultados por área</h3>
+                <table>
+                  <tbody>
+                    <tr><th>Redacción indirecta</th><td id="printRiScore">-</td></tr>
+                    <tr><th>Comprensión lectora</th><td id="printClScore">-</td></tr>
+                    <tr><th>Pensamiento matemático</th><td id="printPmScore">-</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <img src="./assets/unicornio.png" alt="" />
+            </article>
+          </section>
+          <section class="print-insight">
+            <h3>Lectura para tutor/comercial</h3>
+            <p id="printAdvisorMessage">-</p>
+          </section>
+          <section class="print-action-plan">
+            <article>
+              <span>Foco de estudio</span>
+              <strong id="printStudyFocus">-</strong>
+            </article>
+            <article>
+              <span>Meta próxima</span>
+              <strong id="printNextGoal">-</strong>
+            </article>
+            <article>
+              <span>Recomendación</span>
+              <strong id="printRecommendation">-</strong>
+            </article>
+          </section>
+        </section>
+      </section>
+
+      <section class="view" id="captureView" data-view="capture">
+        <section class="section-heading capture-heading">
+          <div>
+            <p class="eyebrow">Nueva captura</p>
+            <h2>Calificar simulador</h2>
+            <p class="muted">Registra el intento de 60 preguntas. La app valida, califica y guarda en el Sheet original.</p>
+          </div>
+          <div class="event-summary capture-score">
+            <span>Puntaje preliminar</span>
+            <strong id="captureGlobalScore">-</strong>
+            <small id="captureStatus">Completa las respuestas</small>
+          </div>
+        </section>
+
+        <form class="capture-form" id="captureForm">
+          <section class="panel capture-details">
+            <label>
+              <span>Nombre completo</span>
+              <input id="captureName" name="name" type="text" autocomplete="name" required />
+            </label>
+            <label>
+              <span>Email opcional</span>
+              <input id="captureEmail" name="email" type="email" autocomplete="email" />
+            </label>
+            <label>
+              <span>Carrera de interés</span>
+              <select id="captureCareer" name="career" required></select>
+            </label>
+            <label>
+              <span>Evento de aplicación</span>
+              <input id="captureEvent" name="event" type="text" list="eventList" required />
+              <datalist id="eventList"></datalist>
+            </label>
+            <label>
+              <span>Año</span>
+              <select id="captureYear" name="year" required>
+                <option value="2025">2025</option>
+                <option value="2024">2024</option>
+                <option value="2023">2023</option>
+                <option value="2022">2022</option>
+                <option value="2021">2021</option>
+              </select>
+            </label>
+            <label>
+              <span>Versión</span>
+              <input id="captureVersion" name="version" type="text" value="1" required />
+            </label>
+          </section>
+
+          <section class="capture-layout">
+            <article class="panel">
+              <div class="panel-header">
+                <p class="card-title">Respuestas 1-60</p>
+                <button id="clearCaptureButton" class="ghost compact" type="button">Limpiar</button>
+              </div>
+              <p class="keyboard-hint">Usa Tab para avanzar entre preguntas. Presiona 1, 2 o 3 para marcar A, B o C.</p>
+              <div class="answers-grid" id="answersGrid"></div>
+            </article>
+
+            <aside class="panel capture-summary">
+              <p class="card-title">Resumen previo</p>
+              <div class="capture-mini-kpis">
+                <div>
+                  <span>Respondidas</span>
+                  <strong id="answeredCount">0/60</strong>
+                </div>
+                <div>
+                  <span>Aciertos</span>
+                  <strong id="correctCount">-</strong>
+                </div>
+              </div>
+              <div class="capture-area-list">
+                <p><span>RI <small id="captureRiProgress">0/20</small></span><strong id="captureRiScore">-</strong></p>
+                <p><span>CL <small id="captureClProgress">0/20</small></span><strong id="captureClScore">-</strong></p>
+                <p><span>PM <small id="capturePmProgress">0/20</small></span><strong id="capturePmScore">-</strong></p>
+              </div>
+              <p id="saveMessage" class="save-message">Lista para validar cuando captures las 60 respuestas.</p>
+              <div id="postSaveActions" class="post-save-actions" hidden>
+                <button id="viewSavedReportButton" type="button">Ver reporte</button>
+                <button id="sameEventButton" class="ghost" type="button">Otro mismo evento</button>
+                <button id="newCaptureButton" class="ghost" type="button">Nueva captura</button>
+              </div>
+              <button id="saveCaptureButton" type="submit" disabled>Guardar en Sheet</button>
+            </aside>
+          </section>
+        </form>
+      </section>
+
+      <section class="view" id="baseView" data-view="base">
+        <section class="section-heading">
+          <div>
+            <p class="eyebrow">Base conectada</p>
+            <h2>Google Sheets</h2>
+            <p class="muted">La app lee el histórico y guardará nuevos intentos en el Sheet original.</p>
+          </div>
+        </section>
+        <section class="panel base-panel">
+          <p class="card-title">Estado</p>
+          <p id="baseStatus">Datos cargados desde el endpoint configurado.</p>
+        </section>
+      </section>
+
+      <section class="view" id="batchView" data-view="batch">
+        <section class="section-heading capture-heading">
+          <div>
+            <p class="eyebrow">Captura por lote</p>
+            <h2>Evento con varias hojas</h2>
+            <p class="muted">Precarga alumnos, sube varias fotos y guarda intentos en grupo después de revisar.</p>
+          </div>
+          <div class="event-summary capture-score">
+            <span>Avance del lote</span>
+            <strong id="batchReadyCount">0/0</strong>
+            <small id="batchStatus">Sin lote activo</small>
+          </div>
+        </section>
+
+        <section class="batch-layout">
+          <article class="panel batch-setup">
+            <div class="panel-header">
+              <p class="card-title">Datos comunes</p>
+              <button id="clearBatchButton" class="ghost compact" type="button">Limpiar lote</button>
+            </div>
+            <div class="batch-fields">
+              <label>
+                <span>Evento</span>
+                <input id="batchEvent" type="text" list="eventList" placeholder="Ej. Visita Colegio..." />
+              </label>
+              <label>
+                <span>Año</span>
+                <select id="batchYear">
+                  <option value="2025">2025</option>
+                  <option value="2024">2024</option>
+                  <option value="2023">2023</option>
+                  <option value="2022">2022</option>
+                  <option value="2021">2021</option>
+                </select>
+              </label>
+              <label>
+                <span>Versión</span>
+                <input id="batchVersion" type="text" value="1" />
+              </label>
+            </div>
+
+            <label class="batch-roster">
+              <span>Alumnos precargados</span>
+              <textarea id="batchRoster" rows="8" placeholder="Pega una lista: Nombre, correo, carrera&#10;DIANA GUZMÁN, diana@mail.com, Médico cirujano"></textarea>
+            </label>
+            <div class="batch-actions">
+              <button id="parseRosterButton" type="button">Cargar alumnos</button>
+              <label class="ghost file-button">
+                Subir fotos
+                <input id="batchPhotoInput" type="file" accept="image/*" multiple />
+              </label>
+            </div>
+            <p id="batchMessage" class="save-message">Carga alumnos y fotos para comenzar.</p>
+          </article>
+
+          <article class="panel batch-review">
+            <div class="panel-header">
+              <p class="card-title">Revisión del lote</p>
+              <button id="saveBatchButton" type="button" disabled>Guardar lote</button>
+            </div>
+            <div id="batchList" class="batch-list">
+              <p class="empty-state">Todavía no hay fotos en el lote.</p>
+            </div>
+          </article>
+        </section>
+      </section>
+
+      <section class="view" id="photoView" data-view="photo">
+        <section class="section-heading capture-heading">
+          <div>
+            <p class="eyebrow">Foto de hoja</p>
+            <h2>Auditoría OCR</h2>
+            <p class="muted">Sube una foto clara de la hoja de respuestas. Esta vista deja lista la revisión antes de conectar la lectura automática.</p>
+          </div>
+          <div class="event-summary capture-score">
+            <span>Estado</span>
+            <strong id="photoStatus">Pendiente</strong>
+            <small id="photoMeta">Sin imagen</small>
+          </div>
+        </section>
+
+        <section class="photo-layout">
+          <article class="panel photo-uploader">
+            <div class="panel-header">
+              <p class="card-title">Imagen de hoja</p>
+              <button id="clearPhotoButton" class="ghost compact" type="button">Limpiar</button>
+            </div>
+            <label class="upload-zone" for="photoInput" id="uploadZone">
+              <input id="photoInput" type="file" accept="image/*" capture="environment" />
+              <span>Subir o tomar foto</span>
+              <small>Formato JPG o PNG. Hoja completa, buena luz y sin sombras fuertes.</small>
+            </label>
+            <div class="photo-preview" id="photoPreview" hidden>
+              <img id="photoPreviewImage" alt="Vista previa de hoja de respuestas" />
+            </div>
+          </article>
+
+          <aside class="panel photo-audit">
+            <p class="card-title">Revisión antes de guardar</p>
+            <div class="audit-list">
+              <label>
+                <input id="auditNameCheck" type="checkbox" />
+                Nombre visible
+              </label>
+              <label>
+                <input id="auditFrameCheck" type="checkbox" />
+                Hoja completa
+              </label>
+              <label>
+                <input id="auditLightCheck" type="checkbox" />
+                Buena iluminación
+              </label>
+              <label>
+                <input id="auditMarksCheck" type="checkbox" />
+                Óvalos legibles
+              </label>
+            </div>
+            <div class="audit-result">
+              <span>Respuestas detectadas</span>
+              <strong id="detectedCount">0/60</strong>
+              <small id="detectionMeta">Detección experimental por plantilla.</small>
+            </div>
+            <p id="photoMessage" class="save-message">Sube una imagen para revisar calidad.</p>
+            <button id="detectAnswersButton" type="button">Detectar respuestas</button>
+            <button id="goManualCaptureButton" class="ghost" type="button">Pasar a captura manual</button>
+          </aside>
+        </section>
+
+        <section class="panel name-reader" id="nameReader" hidden>
+          <div class="panel-header">
+            <p class="card-title">Nombre del sustentante</p>
+            <button id="suggestNameButton" class="ghost compact" type="button" hidden>Sugerir nombre con IA</button>
+          </div>
+          <div class="name-crops">
+            <label>
+              <span>Apellido paterno</span>
+              <canvas id="paternalCrop" height="70"></canvas>
+              <input id="paternalInput" type="text" autocomplete="off" />
+            </label>
+            <label>
+              <span>Apellido materno</span>
+              <canvas id="maternalCrop" height="70"></canvas>
+              <input id="maternalInput" type="text" autocomplete="off" />
+            </label>
+            <label>
+              <span>Nombre(s)</span>
+              <canvas id="namesCrop" height="70"></canvas>
+              <input id="namesInput" type="text" autocomplete="off" />
+            </label>
+          </div>
+          <div class="composed-name">
+            <span>Nombre armado</span>
+            <strong id="composedName">-</strong>
+            <button id="sendNameToCaptureButton" type="button">Usar en captura</button>
+          </div>
+          <p id="nameOcrMessage" class="save-message" hidden>OCR con IA desactivado por ahora.</p>
+        </section>
+      </section>
+    </main>
+
+    <script src="./config.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>
