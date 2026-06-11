@@ -306,6 +306,15 @@ const els = {
   riScore: document.querySelector("#riScore"),
   clScore: document.querySelector("#clScore"),
   pmScore: document.querySelector("#pmScore"),
+  riCompare: document.querySelector("#riCompare"),
+  clCompare: document.querySelector("#clCompare"),
+  pmCompare: document.querySelector("#pmCompare"),
+  riAverage: document.querySelector("#riAverage"),
+  clAverage: document.querySelector("#clAverage"),
+  pmAverage: document.querySelector("#pmAverage"),
+  riDelta: document.querySelector("#riDelta"),
+  clDelta: document.querySelector("#clDelta"),
+  pmDelta: document.querySelector("#pmDelta"),
   riMessage: document.querySelector("#riMessage"),
   clMessage: document.querySelector("#clMessage"),
   pmMessage: document.querySelector("#pmMessage"),
@@ -350,6 +359,12 @@ function scoreMessage(score, averageScore) {
   if (delta >= 40) return "Arriba del promedio: puede sostener esta fortaleza.";
   if (delta >= -20) return "Cerca del promedio: hay margen para subir con práctica focalizada.";
   return "Área prioritaria: conviene reforzarla antes del siguiente simulador.";
+}
+
+function formatAreaDelta(delta) {
+  if (delta > 0) return `↑ ${formatScore(delta)} sobre la media`;
+  if (delta < 0) return `↓ ${formatScore(Math.abs(delta))} bajo la media`;
+  return "→ En la media";
 }
 
 function getFilteredStudents() {
@@ -526,6 +541,11 @@ function renderEmptyReport() {
   els.riMessage.textContent = "-";
   els.clMessage.textContent = "-";
   els.pmMessage.textContent = "-";
+  ["ri", "cl", "pm"].forEach((area) => {
+    els[`${area}Average`].textContent = "-";
+    els[`${area}Delta`].textContent = "-";
+    els[`${area}Compare`].className = "area-compare neutral";
+  });
   els.advisorMessage.textContent = "-";
   renderPrintReport(null);
 }
@@ -536,12 +556,13 @@ function renderReport(studentId) {
 
   const eventAvg = renderEventSummary();
   const historyAvg = average(students.map((item) => item.scores.global));
+  const comparisonGroup = getFilteredStudents();
   const cutoff = cutoffs[normalizeCareer(student.career)] || null;
   const delta = cutoff ? student.scores.global - cutoff.cutoff : 0;
   const areaAverages = {
-    ri: average(students.map((item) => item.scores.ri)),
-    cl: average(students.map((item) => item.scores.cl)),
-    pm: average(students.map((item) => item.scores.pm)),
+    ri: average(comparisonGroup.map((item) => item.scores.ri)),
+    cl: average(comparisonGroup.map((item) => item.scores.cl)),
+    pm: average(comparisonGroup.map((item) => item.scores.pm)),
   };
 
   els.studentName.textContent = student.name;
@@ -566,7 +587,11 @@ function renderReport(studentId) {
   setBar(els.historyBar, historyAvg);
 
   ["ri", "cl", "pm"].forEach((area) => {
+    const areaDelta = student.scores[area] - areaAverages[area];
     els[`${area}Score`].textContent = formatScore(student.scores[area]);
+    els[`${area}Average`].textContent = formatScore(areaAverages[area]);
+    els[`${area}Delta`].textContent = formatAreaDelta(areaDelta);
+    els[`${area}Compare`].className = `area-compare ${areaDelta > 0 ? "positive" : areaDelta < 0 ? "negative" : "neutral"}`;
     els[`${area}Message`].textContent = scoreMessage(student.scores[area], areaAverages[area]);
   });
 

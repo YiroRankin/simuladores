@@ -667,11 +667,59 @@ button:disabled {
 
 .area-card strong {
   display: block;
-  margin-bottom: 9px;
+  margin-bottom: 10px;
   color: var(--ink);
   font-size: 36px;
   font-weight: 900;
   line-height: 1;
+}
+
+.area-compare {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 10px;
+  padding: 9px 10px;
+  color: var(--muted);
+  background: #f3f5ff;
+  border: 1px solid #e1def8;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.area-compare span,
+.area-compare em {
+  min-width: 0;
+}
+
+.area-compare b {
+  color: var(--ink);
+  font-weight: 900;
+}
+
+.area-compare em {
+  padding: 5px 8px;
+  border-radius: 999px;
+  font-style: normal;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.area-compare.positive em {
+  color: #08724d;
+  background: rgba(19, 230, 163, 0.16);
+}
+
+.area-compare.negative em {
+  color: var(--red);
+  background: rgba(196, 27, 27, 0.11);
+}
+
+.area-compare.neutral em {
+  color: var(--purple);
+  background: var(--purple-soft);
 }
 
 .area-card p,
@@ -1478,6 +1526,14 @@ button:disabled {
   .area-card-head img {
     width: 72px;
     height: 72px;
+  }
+
+  .area-compare {
+    grid-template-columns: 1fr;
+  }
+
+  .area-compare em {
+    justify-self: start;
   }
 
   .answer-block-header {
