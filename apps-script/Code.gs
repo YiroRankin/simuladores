@@ -80,6 +80,40 @@ const CAREER_ALIASES = {
   "medico veterinario zootecnista": "Médico veterinario zootecnista"
 };
 
+const EXAM_CONFIGS = {
+  exani2: {
+    id: "exani2",
+    name: "EXANI II - areas basicas",
+    captureSheet: "Captura",
+    keySheet: "Claves",
+    questionCount: 60,
+    captureQuestionStartColumn: 10,
+    keyStartColumn: 3,
+    defaultKey: "CBBBCCBACCABAAAAACBBACBABBCCAABBCABBBABACBBCCACCBBBACBCCBAAC",
+    areas: [
+      { code: "ri", name: "Redaccion indirecta", start: 1, end: 20 },
+      { code: "cl", name: "Comprension lectora", start: 21, end: 40 },
+      { code: "pm", name: "Pensamiento matematico", start: 41, end: 60 }
+    ]
+  },
+  exani1: {
+    id: "exani1",
+    name: "EXANI I - areas basicas",
+    captureSheet: "Captura_EXANI_I",
+    keySheet: "Claves_EXANI_I",
+    questionCount: 80,
+    captureQuestionStartColumn: 10,
+    keyStartColumn: 3,
+    defaultKey: "BCAABCBAACABABCABBCACACABAAABABAABCCBAAAACAABACBCAACBCAACBBCCCABBACCBABCABBACABB",
+    areas: [
+      { code: "ri", name: "Redaccion indirecta", start: 1, end: 20 },
+      { code: "cl", name: "Comprension lectora", start: 21, end: 40 },
+      { code: "pm", name: "Pensamiento matematico", start: 41, end: 60 },
+      { code: "pc", name: "Pensamiento cientifico", start: 61, end: 80 }
+    ]
+  }
+};
+
 function doGet(e) {
   const params = (e && e.parameter) || {};
   const callback = String(params.callback || "").trim();
@@ -88,7 +122,7 @@ function doGet(e) {
     ? appendCapture_(params)
     : action === "nameOcr"
       ? nameOcr_(params.payload)
-      : buildPayload_();
+      : buildPayload_(params);
   return respond_(payload, callback);
 }
 
@@ -120,17 +154,20 @@ function appendCapture_(params, rawBody) {
 
   try {
     const payload = parseCapturePayload_(params, rawBody);
-    validateCapturePayload_(payload);
+    const config = getExamConfig_(payload.exam || params.exam);
+    validateCapturePayload_(payload, config);
 
     const spreadsheet = SpreadsheetApp.openById(SPREADSHEET_ID);
-    const captura = spreadsheet.getSheetByName("Captura");
+    const captura = getOrCreateCaptureSheet_(spreadsheet, config);
     const claves = spreadsheet.getSheetByName("Claves");
     const resultados = spreadsheet.getSheetByName("Resultados");
 
     const targetRow = Math.max(4, captura.getLastRow() + 1);
     ensureRows_(captura, targetRow);
-    ensureRows_(claves, targetRow + 1);
-    ensureRows_(resultados, targetRow + 1);
+    if (claves && resultados && config.id === "exani2") {
+      ensureRows_(claves, targetRow + 1);
+      ensureRows_(resultados, targetRow + 1);
+    }
 
     const nextIndex = Math.max(1, targetRow - 3);
     const numericResponses = payload.responses.map(toAnswerNumber_);
@@ -146,14 +183,17 @@ function appendCapture_(params, rawBody) {
       payload.version || "1"
     ].concat(numericResponses);
 
-    captura.getRange(targetRow, 1, 1, 69).setValues([capturaRow]);
-    setFormulaRows_(claves, resultados, targetRow);
+    captura.getRange(targetRow, 1, 1, 9 + config.questionCount).setValues([capturaRow]);
+    if (claves && resultados && config.id === "exani2") {
+      setFormulaRows_(claves, resultados, targetRow);
+    }
 
     SpreadsheetApp.flush();
 
     return {
       ok: true,
       sourceRow: targetRow,
+      exam: config.id,
       resultRow: targetRow + 1,
       id: slugify_(payload.name + "-" + nextIndex),
       message: "Captura guardada"
@@ -286,6 +326,7 @@ function parseCapturePayload_(params, rawBody) {
   }
 
   return {
+    exam: cleanText_(params.exam || "exani2"),
     name: cleanText_(params.name),
     email: cleanText_(params.email),
     career: cleanText_(params.career),
@@ -296,7 +337,7 @@ function parseCapturePayload_(params, rawBody) {
   };
 }
 
-function validateCapturePayload_(payload) {
+function validateCapturePayload_(payload, config) {
   if (!payload) throw new Error("Payload vacio");
   payload.name = cleanText_(payload.name);
   payload.email = cleanText_(payload.email);
@@ -310,8 +351,8 @@ function validateCapturePayload_(payload) {
   if (SHEET_CAREERS.indexOf(payload.career) < 0) throw new Error("Carrera fuera del catalogo del Sheet: " + payload.career);
   if (!payload.event) throw new Error("Falta evento");
   if (SHEET_YEARS.indexOf(payload.year) < 0) throw new Error("Año fuera del catalogo del Sheet: " + payload.year + ". Usa 2021, 2022, 2023, 2024 o 2025.");
-  if (!Array.isArray(payload.responses) || payload.responses.length !== 60) {
-    throw new Error("Deben existir 60 respuestas");
+  if (!Array.isArray(payload.responses) || payload.responses.length !== config.questionCount) {
+    throw new Error("Deben existir " + config.questionCount + " respuestas");
   }
 
   payload.responses = payload.responses.map(toAnswerLetter_);
@@ -370,29 +411,44 @@ function columnName_(columnNumber) {
   return name;
 }
 
-function buildPayload_() {
+function buildPayload_(params) {
+  const config = getExamConfig_(params && params.exam);
   const spreadsheet = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const captura = spreadsheet.getSheetByName("Captura");
-  const resultados = spreadsheet.getSheetByName("Resultados");
-  const claves = spreadsheet.getSheetByName("Claves");
+  const captura = spreadsheet.getSheetByName(config.captureSheet);
 
+  if (!captura) {
+    return {
+      meta: {
+        spreadsheetId: SPREADSHEET_ID,
+        updatedAt: new Date().toISOString(),
+        examId: config.id,
+        exam: config.name,
+        questionCount: config.questionCount,
+        source: "Google Sheets"
+      },
+      key: getAnswerKey_(spreadsheet, config),
+      students: []
+    };
+  }
+
+  const key = getAnswerKey_(spreadsheet, config);
   const lastRow = captura.getLastRow();
   const rowCount = Math.max(0, lastRow - 3);
-  const capturaRows = rowCount ? captura.getRange(4, 1, rowCount, 69).getValues() : [];
-  const resultadoRows = rowCount ? resultados.getRange(5, 7, rowCount, 4).getValues() : [];
-  const key = claves.getRange(4, 3, 1, 60).getValues()[0].map(toAnswerLetter_);
+  const capturaRows = rowCount ? captura.getRange(4, 1, rowCount, 9 + config.questionCount).getValues() : [];
 
   const students = capturaRows
     .map(function(row, index) {
       const name = cleanText_(row[1]);
       if (!name) return null;
 
-      const scores = resultadoRows[index] || [];
-      const global = toNumber_(scores[3]);
+      const responses = row.slice(9, 9 + config.questionCount).map(toAnswerLetter_);
+      const scores = scoreResponses_(responses, key, config);
+      const global = scores.global;
       if (!global) return null;
 
       return {
         id: slugify_(name + "-" + (row[0] || index + 1)),
+        exam: config.id,
         sourceRow: index + 4,
         name: name,
         email: cleanText_(row[2]),
@@ -400,13 +456,8 @@ function buildPayload_() {
         event: cleanText_(row[4]) || "Sin evento",
         year: String(row[5] || ""),
         version: String(row[8] || "1"),
-        scores: {
-          ri: Math.round(toNumber_(scores[0])),
-          cl: Math.round(toNumber_(scores[1])),
-          pm: Math.round(toNumber_(scores[2])),
-          global: Math.round(global)
-        },
-        responses: row.slice(9, 69).map(toAnswerLetter_)
+        scores: scores,
+        responses: responses
       };
     })
     .filter(Boolean);
@@ -415,13 +466,66 @@ function buildPayload_() {
     meta: {
       spreadsheetId: SPREADSHEET_ID,
       updatedAt: new Date().toISOString(),
-      exam: "EXANI II - areas basicas",
-      questionCount: 60,
+      examId: config.id,
+      exam: config.name,
+      questionCount: config.questionCount,
       source: "Google Sheets"
     },
     key: key,
     students: students
   };
+}
+
+function getExamConfig_(examId) {
+  const raw = normalizeKey_(examId || "exani2");
+  const key = raw.replace(/\s+/g, "");
+  if (key === "exani1" || key === "exani180" || raw === "exani i") return EXAM_CONFIGS.exani1;
+  if (key === "exani2" || key === "exani260" || raw === "exani ii") return EXAM_CONFIGS.exani2;
+  return EXAM_CONFIGS[key] || EXAM_CONFIGS.exani2;
+}
+
+function getOrCreateCaptureSheet_(spreadsheet, config) {
+  let sheet = spreadsheet.getSheetByName(config.captureSheet);
+  if (!sheet) {
+    sheet = spreadsheet.insertSheet(config.captureSheet);
+  }
+  ensureRows_(sheet, 4);
+  ensureCaptureHeader_(sheet, config);
+  return sheet;
+}
+
+function ensureCaptureHeader_(sheet, config) {
+  const headers = ["#", "Nombre completo", "Email", "Carrera", "Evento", "Ano", "Grado", "Grupo", "Version"];
+  for (var i = 1; i <= config.questionCount; i++) {
+    headers.push("P" + i);
+  }
+  sheet.getRange(3, 1, 1, headers.length).setValues([headers]);
+}
+
+function getAnswerKey_(spreadsheet, config) {
+  const sheet = spreadsheet.getSheetByName(config.keySheet);
+  if (sheet) {
+    const values = sheet.getRange(4, config.keyStartColumn, 1, config.questionCount).getValues()[0].map(toAnswerLetter_);
+    if (values.filter(Boolean).length === config.questionCount) return values;
+  }
+  return config.defaultKey.split("").map(toAnswerLetter_);
+}
+
+function scoreResponses_(responses, key, config) {
+  const result = {};
+  let totalScore = 0;
+  config.areas.forEach(function(area) {
+    let correct = 0;
+    for (var i = area.start - 1; i <= area.end - 1; i++) {
+      if (responses[i] && responses[i] === key[i]) correct++;
+    }
+    const icne = ((correct / 0.2) - 50) / 16.67;
+    const score = Math.round(1000 + (100 * icne));
+    result[area.code] = score;
+    totalScore += score;
+  });
+  result.global = Math.round(totalScore / config.areas.length);
+  return result;
 }
 
 function toNumber_(value) {

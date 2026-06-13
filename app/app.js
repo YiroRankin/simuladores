@@ -57,7 +57,42 @@ let batchRoster = [];
 let batchItems = [];
 let customEvents = [];
 
-let answerKey = "CBBBCCBACCABAAAAACBBACBABBCCAABBCABBBABACBBCCACCBBBACBCCBAAC".split("");
+const examProfiles = {
+  exani2: {
+    id: "exani2",
+    shortLabel: "EXANI II 60",
+    title: "EXANI II",
+    description: "Simulador EXANI II de areas basicas",
+    questionCount: 60,
+    cutoffLabel: "UADY 2025",
+    photoDetection: true,
+    key: "CBBBCCBACCABAAAAACBBACBABBCCAABBCABBBABACBBCCACCBBBACBCCBAAC".split(""),
+    areas: [
+      { code: "ri", label: "Redaccion indirecta", badge: "RI", start: 1, end: 20, icon: "./assets/insignia-ri.png" },
+      { code: "cl", label: "Comprension lectora", badge: "CL", start: 21, end: 40, icon: "./assets/insignia-cl.png" },
+      { code: "pm", label: "Pensamiento matematico", badge: "PM", start: 41, end: 60, icon: "./assets/insignia-pm.png" },
+    ],
+  },
+  exani1: {
+    id: "exani1",
+    shortLabel: "EXANI I 80",
+    title: "EXANI I",
+    description: "Simulador EXANI I de areas basicas",
+    questionCount: 80,
+    cutoffLabel: "Referencia historica",
+    photoDetection: false,
+    key: "BCAABCBAACABABCABBCACACABAAABABAABCCBAAAACAABACBCAACBCAACBBCCCABBACCBABCABBACABB".split(""),
+    areas: [
+      { code: "ri", label: "Redaccion indirecta", badge: "RI", start: 1, end: 20, icon: "./assets/insignia-ri.png" },
+      { code: "cl", label: "Comprension lectora", badge: "CL", start: 21, end: 40, icon: "./assets/insignia-cl.png" },
+      { code: "pm", label: "Pensamiento matematico", badge: "PM", start: 41, end: 60, icon: "./assets/insignia-pm.png" },
+      { code: "pc", label: "Pensamiento cientifico", badge: "PC", start: 61, end: 80, icon: "./assets/cerebro.png" },
+    ],
+  },
+};
+
+let currentExamId = "exani2";
+let answerKey = [...examProfiles[currentExamId].key];
 
 const uady2025 = [
   { career: "Actuaria", cutoff: 1043, applicants: 154, admitted: 115, admissionRate: 74.68 },
@@ -213,9 +248,37 @@ const areaLabels = {
   pm: "Pensamiento matemático",
 };
 
+areaLabels.pc = "Pensamiento cientifico";
+
+function currentProfile() {
+  return examProfiles[currentExamId] || examProfiles.exani2;
+}
+
+function currentAreas() {
+  return currentProfile().areas;
+}
+
+function currentQuestionCount() {
+  return currentProfile().questionCount;
+}
+
+function areaElementId(area, suffix) {
+  return `${area.code}${suffix}`;
+}
+
 const els = {
   tabs: document.querySelectorAll("[data-tab]"),
   views: document.querySelectorAll("[data-view]"),
+  heroExamCopy: document.querySelector(".hero-copy p:last-child"),
+  examStatusItem: document.querySelector(".status-meta .status-item"),
+  areaCards: document.querySelector(".areas"),
+  areaCountCopy: document.querySelector(".section-title-row p"),
+  captureIntro: document.querySelector("#captureView .section-heading .muted"),
+  answersTitle: document.querySelector("#answersGrid")?.closest(".panel")?.querySelector(".card-title"),
+  captureAreaList: document.querySelector(".capture-area-list"),
+  printExamName: document.querySelector(".print-header span"),
+  printExamMeta: document.querySelector(".print-header small"),
+  printAreaRows: document.querySelector(".print-area-box tbody"),
   eventFilter: document.querySelector("#eventFilter"),
   studentSearch: document.querySelector("#studentSearch"),
   studentSelect: document.querySelector("#studentSelect"),
@@ -390,18 +453,18 @@ function setBar(element, score) {
 
 function normalizeStudent(raw) {
   const eventInfo = normalizeEventAndYear(raw.event, raw.year);
+  const scores = { global: Number(raw.scores?.global) || 0 };
+  currentAreas().forEach((area) => {
+    scores[area.code] = Number(raw.scores?.[area.code]) || 0;
+  });
   return {
     id: raw.id,
+    exam: raw.exam || raw.examId || currentExamId,
     name: raw.name,
     career: raw.career || "Sin carrera",
     event: eventInfo.event,
     year: eventInfo.year,
-    scores: {
-      ri: Number(raw.scores?.ri) || 0,
-      cl: Number(raw.scores?.cl) || 0,
-      pm: Number(raw.scores?.pm) || 0,
-      global: Number(raw.scores?.global) || 0,
-    },
+    scores,
   };
 }
 
@@ -436,12 +499,14 @@ async function loadStudents() {
 }
 
 async function loadPayload(apiUrl) {
+  const separator = apiUrl.includes("?") ? "&" : "?";
+  const examUrl = `${apiUrl}${separator}exam=${encodeURIComponent(currentExamId)}`;
   try {
-    const response = await fetch(apiUrl, { cache: "no-store" });
+    const response = await fetch(examUrl, { cache: "no-store" });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     return await response.json();
   } catch (error) {
-    return loadPayloadJsonp(apiUrl);
+    return loadPayloadJsonp(examUrl);
   }
 }
 
@@ -472,11 +537,17 @@ function loadPayloadJsonp(apiUrl) {
 }
 
 function applyStudentPayload(payload) {
-  if (!Array.isArray(payload.students) || !payload.students.length) {
+  if (!Array.isArray(payload.students)) {
     throw new Error("El endpoint no regreso alumnos");
   }
 
-  if (Array.isArray(payload.key) && payload.key.length === 60) {
+  if (payload.meta?.questionCount && Number(payload.meta.questionCount) !== currentQuestionCount()) {
+    students = [];
+    answerKey = [...currentProfile().key];
+    return;
+  }
+
+  if (Array.isArray(payload.key) && payload.key.length === currentQuestionCount()) {
     answerKey = payload.key;
   }
 
@@ -502,6 +573,89 @@ function renderOptions() {
   els.eventFilter.value = events.includes(currentEvent) ? currentEvent : "all";
   renderCaptureLists();
   renderStudentOptions();
+}
+
+function renderExamControls() {
+  const profile = currentProfile();
+  if (els.examStatusItem && !document.querySelector("#examSelect")) {
+    els.examStatusItem.classList.add("exam-status-item");
+    els.examStatusItem.innerHTML = `
+      <span>Examen</span>
+      <select id="examSelect" aria-label="Seleccionar examen">
+        ${Object.values(examProfiles).map((exam) => `<option value="${exam.id}">${exam.shortLabel}</option>`).join("")}
+      </select>
+    `;
+  }
+
+  const examSelect = document.querySelector("#examSelect");
+  if (examSelect) {
+    examSelect.value = currentExamId;
+    examSelect.onchange = () => changeExam(examSelect.value);
+  }
+
+  if (els.heroExamCopy) els.heroExamCopy.textContent = profile.description;
+  if (els.areaCountCopy) {
+    els.areaCountCopy.textContent = `${profile.areas.length} areas basicas evaluadas en ${profile.questionCount} reactivos.`;
+  }
+  if (els.captureIntro) {
+    els.captureIntro.textContent = `Registra el intento de ${profile.questionCount} preguntas. La app valida, califica y guarda en el Sheet original.`;
+  }
+  if (els.answersTitle) els.answersTitle.textContent = `Respuestas 1-${profile.questionCount}`;
+  if (els.saveMessage && !els.saveMessage.classList.contains("ok") && !els.saveMessage.classList.contains("error")) {
+    els.saveMessage.textContent = `Lista para validar cuando captures las ${profile.questionCount} respuestas.`;
+  }
+  if (els.printExamName) els.printExamName.textContent = `Reporte de resultados ${profile.title}`;
+  if (els.printExamMeta) els.printExamMeta.textContent = `${profile.cutoffLabel} - Simulador de ${profile.questionCount} reactivos`;
+}
+
+async function changeExam(examId) {
+  if (!examProfiles[examId] || examId === currentExamId) return;
+  currentExamId = examId;
+  answerKey = [...currentProfile().key];
+  students = [];
+  detectedResponses = [];
+  batchItems = [];
+  lastSavedStudentId = "";
+  buildAnswersGrid();
+  renderAreaCards();
+  renderCaptureAreaSummary();
+  renderExamControls();
+  updatePhotoDetectionState();
+  updateCapturePreview();
+  renderOptions();
+  await loadStudents();
+  renderOptions();
+  renderBatchList();
+  updateBatchSummary();
+}
+
+function renderAreaCards() {
+  if (!els.areaCards) return;
+  els.areaCards.innerHTML = currentAreas().map((area) => `
+    <article class="area-card" data-area="${area.code}">
+      <div class="area-card-head">
+        <span>${area.badge}</span>
+        <img src="${area.icon}" alt="" />
+      </div>
+      <h3>${area.label}</h3>
+      <strong id="${areaElementId(area, "Score")}">-</strong>
+      <div class="area-compare neutral" id="${areaElementId(area, "Compare")}">
+        <span>Promedio <b id="${areaElementId(area, "Average")}">-</b></span>
+        <em id="${areaElementId(area, "Delta")}">-</em>
+      </div>
+      <p id="${areaElementId(area, "Message")}">-</p>
+    </article>
+  `).join("");
+}
+
+function renderCaptureAreaSummary() {
+  if (!els.captureAreaList) return;
+  els.captureAreaList.innerHTML = currentAreas().map((area) => `
+    <p>
+      <span>${area.badge} <small id="capture${area.badge}Progress">0/${area.end - area.start + 1}</small></span>
+      <strong id="capture${area.badge}Score">-</strong>
+    </p>
+  `).join("");
 }
 
 function renderCaptureLists() {
@@ -577,11 +731,9 @@ function renderReport(studentId) {
   const comparisonGroup = getFilteredStudents();
   const cutoff = cutoffs[normalizeCareer(student.career)] || null;
   const delta = cutoff ? student.scores.global - cutoff.cutoff : 0;
-  const areaAverages = {
-    ri: average(comparisonGroup.map((item) => item.scores.ri)),
-    cl: average(comparisonGroup.map((item) => item.scores.cl)),
-    pm: average(comparisonGroup.map((item) => item.scores.pm)),
-  };
+  const areaAverages = Object.fromEntries(
+    currentAreas().map((area) => [area.code, average(comparisonGroup.map((item) => item.scores[area.code]))])
+  );
 
   els.studentName.textContent = student.name;
   els.studentMeta.textContent = `${student.career} | ${student.event} | ${student.year}`;
@@ -604,13 +756,13 @@ function renderReport(studentId) {
   setBar(els.eventBar, eventAvg);
   setBar(els.historyBar, historyAvg);
 
-  ["ri", "cl", "pm"].forEach((area) => {
-    const areaDelta = student.scores[area] - areaAverages[area];
-    els[`${area}Score`].textContent = formatScore(student.scores[area]);
-    els[`${area}Average`].textContent = formatScore(areaAverages[area]);
-    els[`${area}Delta`].textContent = formatAreaDelta(areaDelta);
-    els[`${area}Compare`].className = `area-compare ${areaDelta > 0 ? "positive" : areaDelta < 0 ? "negative" : "neutral"}`;
-    els[`${area}Message`].textContent = scoreMessage(student.scores[area], areaAverages[area]);
+  currentAreas().forEach((area) => {
+    const areaDelta = student.scores[area.code] - areaAverages[area.code];
+    document.querySelector(`#${areaElementId(area, "Score")}`).textContent = formatScore(student.scores[area.code]);
+    document.querySelector(`#${areaElementId(area, "Average")}`).textContent = formatScore(areaAverages[area.code]);
+    document.querySelector(`#${areaElementId(area, "Delta")}`).textContent = formatAreaDelta(areaDelta);
+    document.querySelector(`#${areaElementId(area, "Compare")}`).className = `area-compare ${areaDelta > 0 ? "positive" : areaDelta < 0 ? "negative" : "neutral"}`;
+    document.querySelector(`#${areaElementId(area, "Message")}`).textContent = scoreMessage(student.scores[area.code], areaAverages[area.code]);
   });
 
   const entries = Object.entries(student.scores).filter(([key]) => key !== "global");
@@ -633,6 +785,9 @@ function renderPrintReport(context) {
     ].forEach((key) => {
       els[key].textContent = "-";
     });
+    if (els.printAreaRows) {
+      els.printAreaRows.innerHTML = currentAreas().map((area) => `<tr><th>${area.label}</th><td>-</td></tr>`).join("");
+    }
     return;
   }
 
@@ -645,9 +800,11 @@ function renderPrintReport(context) {
   els.printCutoffDelta.textContent = cutoff ? `${delta >= 0 ? "+" : ""}${formatScore(delta)}` : "-";
   els.printEventAverage.textContent = formatScore(eventAvg);
   els.printCutoffMessage.textContent = els.cutoffMessage.textContent;
-  els.printRiScore.textContent = formatScore(student.scores.ri);
-  els.printClScore.textContent = formatScore(student.scores.cl);
-  els.printPmScore.textContent = formatScore(student.scores.pm);
+  if (els.printAreaRows) {
+    els.printAreaRows.innerHTML = currentAreas().map((area) => `
+      <tr><th>${area.label}</th><td>${formatScore(student.scores[area.code])}</td></tr>
+    `).join("");
+  }
   els.printAdvisorMessage.textContent = els.advisorMessage.textContent;
   const areaEntries = Object.entries(student.scores).filter(([key]) => key !== "global");
   const weakest = areaEntries.reduce((low, item) => (item[1] < low[1] ? item : low), areaEntries[0]);
@@ -760,6 +917,89 @@ function updateCapturePreview() {
   return { responses, ri, cl, pm, correct, global, complete, fieldsReady };
 }
 
+function buildAnswersGrid() {
+  const blocks = currentAreas().map((area) => ({
+    code: area.badge,
+    title: area.label,
+    start: area.start,
+    end: area.end,
+  }));
+
+  els.answersGrid.innerHTML = blocks.map((block) => {
+    const items = [];
+    for (let question = block.start; question <= block.end; question++) {
+      const options = ["A", "B", "C"]
+        .map((letter) => `
+          <label>
+            <input type="radio" name="q${question}" value="${letter}" tabindex="-1" />
+            ${letter}
+          </label>
+        `)
+        .join("");
+      items.push(`<div class="answer-item" tabindex="0" data-question="${question}" role="radiogroup" aria-label="Pregunta ${question}"><span>${question}</span>${options}</div>`);
+    }
+
+    return `
+      <section class="answer-block" data-area="${block.code.toLowerCase()}">
+        <div class="answer-block-header">
+          <strong>${block.code}</strong>
+          <span>${block.title}</span>
+          <small>Preguntas ${block.start}-${block.end}</small>
+        </div>
+        <div class="answer-block-grid">${items.join("")}</div>
+      </section>
+    `;
+  }).join("");
+}
+
+function getCaptureResponses() {
+  return Array.from({ length: currentQuestionCount() }, (_, index) => {
+    return els.captureForm.querySelector(`input[name="q${index + 1}"]:checked`)?.value || "";
+  });
+}
+
+function calculateResponseScores(responses) {
+  const areaScores = {};
+  currentAreas().forEach((area) => {
+    areaScores[area.code] = scoreArea(responses, area.start - 1, area.end - 1);
+  });
+  const areaValues = Object.values(areaScores);
+  const correct = areaValues.reduce((sum, area) => sum + area.correct, 0);
+  const global = Math.round(areaValues.reduce((sum, area) => sum + area.score, 0) / areaValues.length);
+  return { ...areaScores, correct, global };
+}
+
+function updateCapturePreview() {
+  const responses = getCaptureResponses();
+  const answered = responses.filter(Boolean).length;
+  const scores = calculateResponseScores(responses);
+  const complete = answered === currentQuestionCount();
+
+  els.answeredCount.textContent = `${answered}/${currentQuestionCount()}`;
+  els.correctCount.textContent = answered ? String(scores.correct) : "-";
+  currentAreas().forEach((area) => {
+    const result = scores[area.code];
+    const scoreElement = document.querySelector(`#capture${area.badge}Score`);
+    const progressElement = document.querySelector(`#capture${area.badge}Progress`);
+    if (scoreElement) scoreElement.textContent = answered ? formatScore(result.score) : "-";
+    if (progressElement) progressElement.textContent = `${result.answered}/${area.end - area.start + 1}`;
+  });
+  els.captureGlobalScore.textContent = answered ? formatScore(scores.global) : "-";
+  els.captureStatus.textContent = complete
+    ? `${scores.correct} aciertos detectados`
+    : `Faltan ${currentQuestionCount() - answered} respuestas`;
+
+  const fieldsReady = Boolean(
+    els.captureName.value.trim() &&
+    els.captureCareer.value &&
+    els.captureEvent.value.trim() &&
+    els.captureYear.value &&
+    els.captureVersion.value.trim()
+  );
+  els.saveCaptureButton.disabled = !(complete && fieldsReady);
+  return { responses, scores, correct: scores.correct, global: scores.global, complete, fieldsReady };
+}
+
 function clearCaptureForm() {
   els.captureForm.reset();
   els.answersGrid.querySelectorAll(".answer-item").forEach((item) => item.classList.remove("answered"));
@@ -767,7 +1007,7 @@ function clearCaptureForm() {
   els.captureVersion.value = "1";
   els.postSaveActions.hidden = true;
   els.saveMessage.className = "save-message";
-  els.saveMessage.textContent = "Lista para validar cuando captures las 60 respuestas.";
+  els.saveMessage.textContent = `Lista para validar cuando captures las ${currentQuestionCount()} respuestas.`;
   updateCapturePreview();
 }
 
@@ -792,7 +1032,7 @@ function selectAnswer(questionGroup, answer) {
   updateCapturePreview();
 
   const question = Number(questionGroup.dataset.question);
-  if (question < 60) {
+  if (question < currentQuestionCount()) {
     focusQuestion(question + 1);
   }
 }
@@ -821,7 +1061,7 @@ function handleAnswerKeyboard(event) {
 
   if (event.key === "ArrowRight" || event.key === "ArrowDown") {
     event.preventDefault();
-    focusQuestion(Math.min(60, Number(questionGroup.dataset.question) + 1));
+    focusQuestion(Math.min(currentQuestionCount(), Number(questionGroup.dataset.question) + 1));
   }
 
   if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
@@ -833,6 +1073,7 @@ function handleAnswerKeyboard(event) {
 function capturePayload() {
   const preview = updateCapturePreview();
   return {
+    exam: currentExamId,
     name: els.captureName.value.trim().toUpperCase(),
     email: els.captureEmail.value.trim(),
     career: els.captureCareer.value,
@@ -1015,7 +1256,7 @@ function renderBatchList() {
 
   els.batchList.innerHTML = batchItems.map((item, index) => {
     const student = batchRoster[item.rosterIndex] || null;
-    const scores = item.responses.length === 60 ? calculateResponseScores(item.responses) : null;
+    const scores = item.responses.length === currentQuestionCount() ? calculateResponseScores(item.responses) : null;
     const answered = item.responses.filter(Boolean).length;
     const statusClass = item.saved ? "ok" : item.status === "Error" ? "error" : item.lowConfidence > 8 ? "warn" : "ok";
     return `
@@ -1032,7 +1273,7 @@ function renderBatchList() {
           </label>
           <p>${student ? escapeHtml(student.career || "Sin carrera") : "Asigna alumno para guardar"}</p>
           <div class="batch-card-kpis">
-            <span>${answered}/60 respuestas</span>
+            <span>${answered}/${currentQuestionCount()} respuestas</span>
             <span>${item.lowConfidence} por revisar</span>
             <strong>${scores ? formatScore(scores.global) : "-"}</strong>
           </div>
@@ -1061,7 +1302,7 @@ function updateBatchSummary() {
 function getReadyBatchItems() {
   return batchItems.filter((item) => {
     const student = batchRoster[item.rosterIndex];
-    return !item.saved && student && student.career && item.responses.length === 60;
+    return !item.saved && student && student.career && item.responses.length === currentQuestionCount();
   });
 }
 
@@ -1151,6 +1392,7 @@ async function saveBatch() {
       event: eventName,
       year: els.batchYear.value,
       version: els.batchVersion.value.trim() || "1",
+      exam: currentExamId,
       responses: item.responses,
     };
 
@@ -1235,7 +1477,7 @@ function handlePhotoUpload(event) {
   };
   els.photoPreviewImage.src = url;
   els.photoPreview.hidden = false;
-  els.detectedCount.textContent = "0/60";
+  els.detectedCount.textContent = `0/${currentQuestionCount()}`;
   els.detectionMeta.textContent = "Lista para detectar";
   detectedResponses = [];
   els.photoStatus.textContent = "Cargada";
@@ -1261,7 +1503,7 @@ function clearPhoto() {
   els.namesInput.value = "";
   els.composedName.textContent = "-";
   hideNameOcrControls();
-  els.detectedCount.textContent = "0/60";
+  els.detectedCount.textContent = `0/${currentQuestionCount()}`;
   els.detectionMeta.textContent = "Detección experimental por plantilla.";
   detectedResponses = [];
   auditChecks().forEach((item) => {
@@ -1278,8 +1520,20 @@ function hideNameOcrControls() {
   els.nameOcrMessage.textContent = "OCR con IA desactivado por ahora.";
 }
 
+function updatePhotoDetectionState() {
+  const enabled = currentProfile().photoDetection;
+  els.detectAnswersButton.disabled = !enabled;
+  if (!enabled) {
+    detectedResponses = [];
+    els.detectedCount.textContent = `0/${currentQuestionCount()}`;
+    els.detectionMeta.textContent = "Foto pendiente de calibrar para este examen.";
+    els.photoMessage.className = "save-message";
+    els.photoMessage.textContent = "Para EXANI I usa captura manual por ahora; la deteccion por foto requiere calibrar la hoja de 80 reactivos.";
+  }
+}
+
 function goManualCaptureFromPhoto() {
-  if (detectedResponses.length === 60) {
+  if (detectedResponses.length === currentQuestionCount()) {
     applyDetectedResponsesToCapture();
   }
   sendNameToCapture();
@@ -1454,6 +1708,10 @@ function sampleOvalDarkness(imageData, width, height, cx, cy, rx, ry) {
 }
 
 function detectAnswersFromPhoto() {
+  if (!currentProfile().photoDetection) {
+    updatePhotoDetectionState();
+    return;
+  }
   const image = els.photoPreviewImage;
   if (!image.src || !image.naturalWidth || !image.naturalHeight) {
     els.photoMessage.className = "save-message error";
@@ -1463,10 +1721,10 @@ function detectAnswersFromPhoto() {
 
   const result = detectResponsesFromImage(image);
   detectedResponses = result.responses;
-  els.detectedCount.textContent = `${result.responses.filter(Boolean).length}/60`;
+  els.detectedCount.textContent = `${result.responses.filter(Boolean).length}/${currentQuestionCount()}`;
   els.detectionMeta.textContent = result.lowConfidence ? `${result.lowConfidence} por revisar` : "Confianza alta";
   els.photoStatus.textContent = result.lowConfidence > 8 ? "Revisar" : "Lista";
-  els.photoMeta.textContent = `${result.responses.filter(Boolean).length}/60 detectadas`;
+  els.photoMeta.textContent = `${result.responses.filter(Boolean).length}/${currentQuestionCount()} detectadas`;
   els.photoMessage.className = result.lowConfidence > 8 ? "save-message" : "save-message ok";
   els.photoMessage.textContent = `Lectura experimental completa. Pasa a captura manual para revisar antes de guardar.`;
 }
@@ -1528,7 +1786,7 @@ async function saveCapture(event) {
   const preview = updateCapturePreview();
   if (!preview.complete || !preview.fieldsReady) {
     els.saveMessage.className = "save-message error";
-    els.saveMessage.textContent = "Completa datos del alumno y las 60 respuestas antes de guardar.";
+    els.saveMessage.textContent = `Completa datos del alumno y las ${currentQuestionCount()} respuestas antes de guardar.`;
     return;
   }
 
@@ -1629,10 +1887,14 @@ els.answersGrid.addEventListener("change", (event) => {
 });
 
 async function init() {
+  renderExamControls();
+  renderAreaCards();
+  renderCaptureAreaSummary();
   buildAnswersGrid();
   await loadStudents();
   renderOptions();
   hideNameOcrControls();
+  updatePhotoDetectionState();
   renderBatchList();
   updateBatchSummary();
   updateCapturePreview();
