@@ -79,7 +79,7 @@ const examProfiles = {
     title: "EXANI I",
     description: "Simulador EXANI I de areas basicas",
     questionCount: 80,
-    cutoffLabel: "Referencia historica",
+    cutoffLabel: "Prepas UADY",
     photoDetection: false,
     key: "BCAABCBAACABABCABBCACACABAAABABAABCCBAAAACAABACBCAACBCAACBBCCCABBACCBABCABBACABB".split(""),
     areas: [
@@ -251,6 +251,49 @@ function normalizeCareer(value) {
 
 const cutoffs = Object.fromEntries(uady2025.map((item) => [normalizeCareer(item.career), item]));
 
+const exaniOneBenchmarks = {
+  general: {
+    state: "Yucatan",
+    applicants: 19050,
+    mean: 994,
+    standardDeviation: 52,
+    max: 1254,
+    min: 700,
+  },
+  areas: {
+    ri: { mean: 995, standardDeviation: 80 },
+    cl: { mean: 1050, standardDeviation: 74 },
+    pm: { mean: 964, standardDeviation: 65 },
+    pc: { mean: 978, standardDeviation: 64 },
+  },
+  cutoffs: {
+    [normalizeText("Preparatoria Uno")]: {
+      career: "Preparatoria Uno",
+      label: "Prepa 1",
+      cutoff: 1032,
+      applicants: 2053,
+      admitted: 1346,
+      max: 1249,
+    },
+    [normalizeText("Preparatoria Dos")]: {
+      career: "Preparatoria Dos",
+      label: "Prepa 2",
+      cutoff: 1065,
+      applicants: 2752,
+      admitted: 1353,
+      max: 1245,
+    },
+    [normalizeText("UABIC")]: {
+      career: "UABIC",
+      label: "Prepa 3 / UABIC",
+      cutoff: 963,
+      applicants: 481,
+      admitted: 377,
+      max: 1194,
+    },
+  },
+};
+
 function normalizeText(value) {
   return String(value || "")
     .toLowerCase()
@@ -292,6 +335,52 @@ function currentAreaLabel(code) {
   return currentAreas().find((area) => area.code === code)?.label || areaLabels[code] || code.toUpperCase();
 }
 
+function getCutoffForStudent(student) {
+  if (currentExamId === "exani1") {
+    const cutoff = exaniOneBenchmarks.cutoffs[normalizeText(student.career)] || null;
+    if (!cutoff) return null;
+    return {
+      ...cutoff,
+      admissionRate: Number(((cutoff.admitted / cutoff.applicants) * 100).toFixed(2)),
+      sourceLabel: "Prepas UADY",
+    };
+  }
+
+  const cutoff = cutoffs[normalizeCareer(student.career)] || null;
+  return cutoff ? { ...cutoff, sourceLabel: "UADY 2025" } : null;
+}
+
+function getHistoryAverage() {
+  if (currentExamId === "exani1") return exaniOneBenchmarks.general.mean;
+  return average(students.map((item) => item.scores.global));
+}
+
+function getAreaAverage(area, comparisonGroup) {
+  if (currentExamId === "exani1" && exaniOneBenchmarks.areas[area.code]) {
+    return exaniOneBenchmarks.areas[area.code].mean;
+  }
+  return average(comparisonGroup.map((item) => item.scores[area.code]));
+}
+
+function cutoffMessageFor(student, cutoff, delta) {
+  if (!cutoff) {
+    return currentExamId === "exani1"
+      ? `No encontre punto de corte para ${student.career}. Usa Preparatoria Uno, Preparatoria Dos o UABIC.`
+      : `No encontré un corte UADY 2025 para ${student.career}. Hay que agregar un alias de carrera.`;
+  }
+
+  if (currentExamId === "exani1") {
+    const position = delta >= 0
+      ? `supera por ${formatScore(delta)} puntos`
+      : `esta a ${formatScore(Math.abs(delta))} puntos`;
+    return `Su puntaje ${position} del corte de ${cutoff.label} (${formatScore(cutoff.cutoff)}). Admitidos: ${cutoff.admitted} de ${cutoff.applicants} aspirantes (${cutoff.admissionRate}%). Puntaje maximo: ${formatScore(cutoff.max)}; media estatal: ${formatScore(exaniOneBenchmarks.general.mean)}.`;
+  }
+
+  return delta >= 0
+    ? `El puntaje supera el corte UADY 2025 de ${student.career}. En 2025 ingresaron ${cutoff.admitted} de ${cutoff.applicants} aspirantes (${cutoff.admissionRate}%).`
+    : `Está a ${Math.abs(delta)} puntos del corte UADY 2025 de ${student.career}. En 2025 ingresaron ${cutoff.admitted} de ${cutoff.applicants} aspirantes (${cutoff.admissionRate}%).`;
+}
+
 const els = {
   tabs: document.querySelectorAll("[data-tab]"),
   views: document.querySelectorAll("[data-view]"),
@@ -299,6 +388,8 @@ const els = {
   examStatusItem: document.querySelector(".status-meta .status-item"),
   areaCards: document.querySelector(".areas"),
   areaCountCopy: document.querySelector(".section-title-row p"),
+  cutoffBadge: document.querySelector(".cutoff-card .badge"),
+  comparisonStatus: document.querySelector(".status-meta .status-item:nth-child(2) strong"),
   captureIntro: document.querySelector("#captureView .section-heading .muted"),
   answersTitle: document.querySelector("#answersGrid")?.closest(".panel")?.querySelector(".card-title"),
   captureAreaList: document.querySelector(".capture-area-list"),
@@ -630,6 +721,8 @@ function renderExamControls() {
   if (els.saveMessage && !els.saveMessage.classList.contains("ok") && !els.saveMessage.classList.contains("error")) {
     els.saveMessage.textContent = `Lista para validar cuando captures las ${profile.questionCount} respuestas.`;
   }
+  if (els.cutoffBadge) els.cutoffBadge.textContent = profile.cutoffLabel;
+  if (els.comparisonStatus) els.comparisonStatus.textContent = profile.cutoffLabel;
   if (els.printExamName) els.printExamName.textContent = `Reporte de resultados ${profile.title}`;
   if (els.printExamMeta) els.printExamMeta.textContent = `${profile.cutoffLabel} - Simulador de ${profile.questionCount} reactivos`;
 }
@@ -657,6 +750,7 @@ async function changeExam(examId) {
 
 function renderAreaCards() {
   if (!els.areaCards) return;
+  const averageLabel = currentExamId === "exani1" ? "Media estatal" : "Promedio";
   els.areaCards.innerHTML = currentAreas().map((area) => `
     <article class="area-card" data-area="${area.code}">
       <div class="area-card-head">
@@ -666,7 +760,7 @@ function renderAreaCards() {
       <h3>${area.label}</h3>
       <strong id="${areaElementId(area, "Score")}">-</strong>
       <div class="area-compare neutral" id="${areaElementId(area, "Compare")}">
-        <span>Promedio <b id="${areaElementId(area, "Average")}">-</b></span>
+        <span>${averageLabel} <b id="${areaElementId(area, "Average")}">-</b></span>
         <em id="${areaElementId(area, "Delta")}">-</em>
       </div>
       <p id="${areaElementId(area, "Message")}">-</p>
@@ -760,12 +854,12 @@ function renderReport(studentId) {
   if (!student) return;
 
   const eventAvg = renderEventSummary();
-  const historyAvg = average(students.map((item) => item.scores.global));
+  const historyAvg = getHistoryAverage();
   const comparisonGroup = getFilteredStudents();
-  const cutoff = cutoffs[normalizeCareer(student.career)] || null;
+  const cutoff = getCutoffForStudent(student);
   const delta = cutoff ? student.scores.global - cutoff.cutoff : 0;
   const areaAverages = Object.fromEntries(
-    currentAreas().map((area) => [area.code, average(comparisonGroup.map((item) => item.scores[area.code]))])
+    currentAreas().map((area) => [area.code, getAreaAverage(area, comparisonGroup)])
   );
 
   els.studentName.textContent = student.name;
@@ -781,6 +875,10 @@ function renderReport(studentId) {
       ? `El puntaje supera el corte UADY 2025 de ${student.career}. En 2025 ingresaron ${cutoff.admitted} de ${cutoff.applicants} aspirantes (${cutoff.admissionRate}%).`
       : `Está a ${Math.abs(delta)} puntos del corte UADY 2025 de ${student.career}. En 2025 ingresaron ${cutoff.admitted} de ${cutoff.applicants} aspirantes (${cutoff.admissionRate}%).`
     : `No encontré un corte UADY 2025 para ${student.career}. Hay que agregar un alias de carrera.`;
+
+  if (currentExamId === "exani1") {
+    els.cutoffMessage.textContent = cutoffMessageFor(student, cutoff, delta);
+  }
 
   els.studentBarValue.textContent = formatScore(student.scores.global);
   els.eventBarValue.textContent = formatScore(eventAvg);
