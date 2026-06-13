@@ -56,7 +56,7 @@ const SHEET_CAREERS = [
   "CINEMATOGRAFIA",
   "NEGOCIOS",
   "Aviacion",
-  "Nanotecnologia",
+  "Nanotecnología",
   "Veracruz"
 ];
 
@@ -101,7 +101,7 @@ const EXANI_I_CAREER_ALIASES = {
 const EXAM_CONFIGS = {
   exani2: {
     id: "exani2",
-    name: "EXANI II - areas basicas",
+    name: "EXANI II - áreas básicas",
     captureSheet: "Captura",
     keySheet: "Claves",
     questionCount: 60,
@@ -112,13 +112,13 @@ const EXAM_CONFIGS = {
     careerAliases: CAREER_ALIASES,
     areas: [
       { code: "ri", name: "Redaccion indirecta", start: 1, end: 20 },
-      { code: "cl", name: "Comprension lectora", start: 21, end: 40 },
-      { code: "pm", name: "Pensamiento matematico", start: 41, end: 60 }
+      { code: "cl", name: "Comprensión lectora", start: 21, end: 40 },
+      { code: "pm", name: "Pensamiento matemático", start: 41, end: 60 }
     ]
   },
   exani1: {
     id: "exani1",
-    name: "EXANI I - areas basicas",
+    name: "EXANI I - áreas básicas",
     captureSheet: "Captura_EXANI_I",
     keySheet: "Claves_EXANI_I",
     questionCount: 80,
@@ -129,9 +129,9 @@ const EXAM_CONFIGS = {
     careerAliases: EXANI_I_CAREER_ALIASES,
     areas: [
       { code: "ri", name: "Estructura de la lengua", start: 1, end: 20 },
-      { code: "cl", name: "Comprension lectora", start: 21, end: 40 },
-      { code: "pm", name: "Pensamiento matematico", start: 41, end: 60 },
-      { code: "pc", name: "Pensamiento analitico", start: 61, end: 80 }
+      { code: "cl", name: "Comprensión lectora", start: 21, end: 40 },
+      { code: "pm", name: "Pensamiento matemático", start: 41, end: 60 },
+      { code: "pc", name: "Pensamiento analítico", start: 61, end: 80 }
     ]
   }
 };
@@ -259,7 +259,7 @@ function nameOcr_(rawBody) {
                 text: [
                   "Lee escritura manuscrita en mayusculas dentro de casillas de una hoja de respuestas.",
                   "Devuelve solo JSON valido con las claves paternal, maternal y names.",
-                  "No inventes letras si no estas seguro; usa cadena vacia para una parte ilegible.",
+                  "No inventes letras si no estás seguro; usa cadena vacía para una parte ilegible.",
                   "Normaliza a mayusculas sin acentos."
                 ].join(" ")
               },
@@ -328,7 +328,7 @@ function extractResponseText_(response) {
     }
   }
 
-  throw new Error("La respuesta del modelo no incluyo texto");
+  throw new Error("La respuesta del modelo no incluyó texto");
 }
 
 function cleanOcrText_(value) {
@@ -370,9 +370,9 @@ function validateCapturePayload_(payload, config) {
 
   if (!payload.name) throw new Error("Falta nombre");
   if (!payload.career) throw new Error("Falta carrera");
-  if (config.careers.indexOf(payload.career) < 0) throw new Error("Carrera fuera del catalogo del Sheet: " + payload.career);
+  if (config.careers.indexOf(payload.career) < 0) throw new Error("Carrera fuera del catálogo del Sheet: " + payload.career);
   if (!payload.event) throw new Error("Falta evento");
-  if (SHEET_YEARS.indexOf(payload.year) < 0) throw new Error("Año fuera del catalogo del Sheet: " + payload.year + ". Usa 2021, 2022, 2023, 2024 o 2025.");
+  if (SHEET_YEARS.indexOf(payload.year) < 0) throw new Error("Año fuera del catálogo del Sheet: " + payload.year + ". Usa 2021, 2022, 2023, 2024 o 2025.");
   if (!Array.isArray(payload.responses) || payload.responses.length !== config.questionCount) {
     throw new Error("Deben existir " + config.questionCount + " respuestas");
   }
@@ -380,7 +380,7 @@ function validateCapturePayload_(payload, config) {
   payload.responses = payload.responses.map(toAnswerLetter_);
   const missing = payload.responses.findIndex(function(answer) { return !answer; });
   if (missing >= 0) {
-    throw new Error("Respuesta invalida o vacia en pregunta " + (missing + 1));
+    throw new Error("Respuesta inválida o vacía en pregunta " + (missing + 1));
   }
 }
 
@@ -517,7 +517,7 @@ function getOrCreateCaptureSheet_(spreadsheet, config) {
 }
 
 function ensureCaptureHeader_(sheet, config) {
-  const headers = ["#", "Nombre completo", "Email", "Carrera", "Evento", "Ano", "Grado", "Grupo", "Version"];
+  const headers = ["#", "Nombre completo", "Email", "Carrera", "Evento", "Año", "Grado", "Grupo", "Versión"];
   for (var i = 1; i <= config.questionCount; i++) {
     headers.push("P" + i);
   }

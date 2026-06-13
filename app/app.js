@@ -2,7 +2,7 @@ const sampleStudents = [
   {
     id: "diana-guzman",
     name: "DIANA ELIZABETH GUZMAN CHI",
-    career: "Medico cirujano",
+    career: "Médico cirujano",
     event: "Open House 15 de junio 2023",
     year: "2023",
     scores: { ri: 1060, cl: 1030, pm: 1060, global: 1050 },
@@ -10,7 +10,7 @@ const sampleStudents = [
   {
     id: "alexa-perez",
     name: "ALEXA ELIDE PEREZ CHI",
-    career: "Medico cirujano",
+    career: "Médico cirujano",
     event: "Open House 15 de junio 2023",
     year: "2023",
     scores: { ri: 1150, cl: 1090, pm: 940, global: 1060 },
@@ -26,7 +26,7 @@ const sampleStudents = [
   {
     id: "jhoanna-coba",
     name: "JHOANNA NICOLE COBA SOSA",
-    career: "Medico cirujano",
+    career: "Médico cirujano",
     event: "Aplicaciones adicionales (Mérida)",
     year: "2023",
     scores: { ri: 970, cl: 1060, pm: 910, global: 980 },
@@ -62,31 +62,31 @@ const examProfiles = {
     id: "exani2",
     shortLabel: "EXANI II 60",
     title: "EXANI II",
-    description: "Simulador EXANI II de areas basicas",
+    description: "Simulador EXANI II de áreas básicas",
     questionCount: 60,
     cutoffLabel: "UADY 2025",
     photoDetection: true,
     key: "CBBBCCBACCABAAAAACBBACBABBCCAABBCABBBABACBBCCACCBBBACBCCBAAC".split(""),
     areas: [
       { code: "ri", label: "Redaccion indirecta", badge: "RI", start: 1, end: 20, icon: "./assets/insignia-ri.png" },
-      { code: "cl", label: "Comprension lectora", badge: "CL", start: 21, end: 40, icon: "./assets/insignia-cl.png" },
-      { code: "pm", label: "Pensamiento matematico", badge: "PM", start: 41, end: 60, icon: "./assets/insignia-pm.png" },
+      { code: "cl", label: "Comprensión lectora", badge: "CL", start: 21, end: 40, icon: "./assets/insignia-cl.png" },
+      { code: "pm", label: "Pensamiento matemático", badge: "PM", start: 41, end: 60, icon: "./assets/insignia-pm.png" },
     ],
   },
   exani1: {
     id: "exani1",
     shortLabel: "EXANI I 80",
     title: "EXANI I",
-    description: "Simulador EXANI I de areas basicas",
+    description: "Simulador EXANI I de áreas básicas",
     questionCount: 80,
     cutoffLabel: "Prepas UADY",
     photoDetection: false,
     key: "BCAABCBAACABABCABBCACACABAAABABAABCCBAAAACAABACBCAACBCAACBBCCCABBACCBABCABBACABB".split(""),
     areas: [
       { code: "ri", label: "Estructura de la lengua", badge: "EL", start: 1, end: 20, icon: "./assets/insignia-spk1-el.png" },
-      { code: "cl", label: "Comprension lectora", badge: "CL", start: 21, end: 40, icon: "./assets/insignia-spk1-cl.png" },
-      { code: "pm", label: "Pensamiento matematico", badge: "PM", start: 41, end: 60, icon: "./assets/insignia-spk1-pm.png" },
-      { code: "pc", label: "Pensamiento analitico", badge: "PA", start: 61, end: 80, icon: "./assets/insignia-spk1-pa.png" },
+      { code: "cl", label: "Comprensión lectora", badge: "CL", start: 21, end: 40, icon: "./assets/insignia-spk1-cl.png" },
+      { code: "pm", label: "Pensamiento matemático", badge: "PM", start: 41, end: 60, icon: "./assets/insignia-spk1-pm.png" },
+      { code: "pc", label: "Pensamiento analítico", badge: "PA", start: 61, end: 80, icon: "./assets/insignia-spk1-pa.png" },
     ],
   },
 };
@@ -134,8 +134,8 @@ const uady2025 = [
   { career: "Ing. Software (Tizimin)", cutoff: 900, applicants: 22, admitted: 22, admissionRate: 100 },
   { career: "Literatura Latinoamericana", cutoff: 978, applicants: 32, admitted: 32, admissionRate: 100 },
   { career: "Matematicas", cutoff: 943, applicants: 31, admitted: 31, admissionRate: 100 },
-  { career: "Medico Cirujano", cutoff: 1248, applicants: 3724, admitted: 247, admissionRate: 6.63 },
-  { career: "Medico Veterinario Zootecnista", cutoff: 1113, applicants: 971, admitted: 205, admissionRate: 21.11 },
+  { career: "Médico Cirujano", cutoff: 1248, applicants: 3724, admitted: 247, admissionRate: 6.63 },
+  { career: "Médico Veterinario Zootecnista", cutoff: 1113, applicants: 971, admitted: 205, admissionRate: 21.11 },
   { career: "Mercadotecnia y Negocios Internacionales", cutoff: 1065, applicants: 496, admitted: 257, admissionRate: 51.81 },
   { career: "Nutricion", cutoff: 1109, applicants: 268, admitted: 99, admissionRate: 36.94 },
   { career: "Psicologia", cutoff: 1061, applicants: 599, admitted: 321, admissionRate: 53.59 },
@@ -202,7 +202,7 @@ const sheetCareers = [
   "CINEMATOGRAFIA",
   "NEGOCIOS",
   "Aviacion",
-  "Nanotecnologia",
+  "Nanotecnología",
   "Veracruz",
 ];
 
@@ -253,7 +253,7 @@ const cutoffs = Object.fromEntries(uady2025.map((item) => [normalizeCareer(item.
 
 const exaniOneBenchmarks = {
   general: {
-    state: "Yucatan",
+    state: "Yucatán",
     applicants: 19050,
     mean: 994,
     standardDeviation: 52,
@@ -309,7 +309,7 @@ const areaLabels = {
   pm: "Pensamiento matemático",
 };
 
-areaLabels.pc = "Pensamiento cientifico";
+areaLabels.pc = "Pensamiento científico";
 
 function currentProfile() {
   return examProfiles[currentExamId] || examProfiles.exani2;
@@ -365,15 +365,15 @@ function getAreaAverage(area, comparisonGroup) {
 function cutoffMessageFor(student, cutoff, delta) {
   if (!cutoff) {
     return currentExamId === "exani1"
-      ? `No encontre punto de corte para ${student.career}. Usa Preparatoria Uno, Preparatoria Dos o UABIC.`
+      ? `No encontré punto de corte para ${student.career}. Usa Preparatoria Uno, Preparatoria Dos o UABIC.`
       : `No encontré un corte UADY 2025 para ${student.career}. Hay que agregar un alias de carrera.`;
   }
 
   if (currentExamId === "exani1") {
     const position = delta >= 0
       ? `supera por ${formatScore(delta)} puntos`
-      : `esta a ${formatScore(Math.abs(delta))} puntos`;
-    return `Su puntaje ${position} del corte de ${cutoff.label} (${formatScore(cutoff.cutoff)}). Admitidos: ${cutoff.admitted} de ${cutoff.applicants} aspirantes (${cutoff.admissionRate}%). Puntaje maximo: ${formatScore(cutoff.max)}; media estatal: ${formatScore(exaniOneBenchmarks.general.mean)}.`;
+      : `está a ${formatScore(Math.abs(delta))} puntos`;
+    return `Su puntaje ${position} del corte de ${cutoff.label} (${formatScore(cutoff.cutoff)}). Admitidos: ${cutoff.admitted} de ${cutoff.applicants} aspirantes (${cutoff.admissionRate}%). Puntaje máximo: ${formatScore(cutoff.max)}; media estatal: ${formatScore(exaniOneBenchmarks.general.mean)}.`;
   }
 
   return delta >= 0
@@ -712,7 +712,7 @@ function renderExamControls() {
 
   if (els.heroExamCopy) els.heroExamCopy.textContent = profile.description;
   if (els.areaCountCopy) {
-    els.areaCountCopy.textContent = `${profile.areas.length} areas basicas evaluadas en ${profile.questionCount} reactivos.`;
+    els.areaCountCopy.textContent = `${profile.areas.length} áreas básicas evaluadas en ${profile.questionCount} reactivos.`;
   }
   if (els.captureIntro) {
     els.captureIntro.textContent = `Registra el intento de ${profile.questionCount} preguntas. La app valida, califica y guarda en el Sheet original.`;
@@ -1664,7 +1664,7 @@ function updatePhotoDetectionState() {
     els.detectedCount.textContent = `0/${currentQuestionCount()}`;
     els.detectionMeta.textContent = "Foto pendiente de calibrar para este examen.";
     els.photoMessage.className = "save-message";
-    els.photoMessage.textContent = "Para EXANI I usa captura manual por ahora; la deteccion por foto requiere calibrar la hoja de 80 reactivos.";
+    els.photoMessage.textContent = "Para EXANI I usa captura manual por ahora; la detección por foto requiere calibrar la hoja de 80 reactivos.";
   }
 }
 
