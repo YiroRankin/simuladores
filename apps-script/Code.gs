@@ -60,6 +60,12 @@ const SHEET_CAREERS = [
   "Veracruz"
 ];
 
+const EXANI_I_CAREERS = [
+  "Preparatoria Uno",
+  "Preparatoria Dos",
+  "UABIC"
+];
+
 const CAREER_ALIASES = {
   "actuaria": "Actuaría",
   "antropologia": "Antropología social",
@@ -80,6 +86,18 @@ const CAREER_ALIASES = {
   "medico veterinario zootecnista": "Médico veterinario zootecnista"
 };
 
+const EXANI_I_CAREER_ALIASES = {
+  "prepa 1": "Preparatoria Uno",
+  "prepa uno": "Preparatoria Uno",
+  "preparatoria 1": "Preparatoria Uno",
+  "preparatoria uno": "Preparatoria Uno",
+  "prepa 2": "Preparatoria Dos",
+  "prepa dos": "Preparatoria Dos",
+  "preparatoria 2": "Preparatoria Dos",
+  "preparatoria dos": "Preparatoria Dos",
+  "uabic": "UABIC"
+};
+
 const EXAM_CONFIGS = {
   exani2: {
     id: "exani2",
@@ -90,6 +108,8 @@ const EXAM_CONFIGS = {
     captureQuestionStartColumn: 10,
     keyStartColumn: 3,
     defaultKey: "CBBBCCBACCABAAAAACBBACBABBCCAABBCABBBABACBBCCACCBBBACBCCBAAC",
+    careers: SHEET_CAREERS,
+    careerAliases: CAREER_ALIASES,
     areas: [
       { code: "ri", name: "Redaccion indirecta", start: 1, end: 20 },
       { code: "cl", name: "Comprension lectora", start: 21, end: 40 },
@@ -105,6 +125,8 @@ const EXAM_CONFIGS = {
     captureQuestionStartColumn: 10,
     keyStartColumn: 3,
     defaultKey: "BCAABCBAACABABCABBCACACABAAABABAABCCBAAAACAABACBCAACBCAACBBCCCABBACCBABCABBACABB",
+    careers: EXANI_I_CAREERS,
+    careerAliases: EXANI_I_CAREER_ALIASES,
     areas: [
       { code: "ri", name: "Redaccion indirecta", start: 1, end: 20 },
       { code: "cl", name: "Comprension lectora", start: 21, end: 40 },
@@ -341,14 +363,14 @@ function validateCapturePayload_(payload, config) {
   if (!payload) throw new Error("Payload vacio");
   payload.name = cleanText_(payload.name);
   payload.email = cleanText_(payload.email);
-  payload.career = normalizeSheetCareer_(payload.career);
+  payload.career = normalizeSheetCareer_(payload.career, config);
   payload.event = cleanText_(payload.event);
   payload.year = cleanText_(payload.year || "2025");
   payload.version = cleanText_(payload.version || "1");
 
   if (!payload.name) throw new Error("Falta nombre");
   if (!payload.career) throw new Error("Falta carrera");
-  if (SHEET_CAREERS.indexOf(payload.career) < 0) throw new Error("Carrera fuera del catalogo del Sheet: " + payload.career);
+  if (config.careers.indexOf(payload.career) < 0) throw new Error("Carrera fuera del catalogo del Sheet: " + payload.career);
   if (!payload.event) throw new Error("Falta evento");
   if (SHEET_YEARS.indexOf(payload.year) < 0) throw new Error("Año fuera del catalogo del Sheet: " + payload.year + ". Usa 2021, 2022, 2023, 2024 o 2025.");
   if (!Array.isArray(payload.responses) || payload.responses.length !== config.questionCount) {
@@ -550,17 +572,19 @@ function toAnswerNumber_(value) {
   return "";
 }
 
-function normalizeSheetCareer_(value) {
+function normalizeSheetCareer_(value, config) {
   const cleaned = cleanText_(value);
   if (!cleaned) return "";
 
   const normalized = normalizeKey_(cleaned);
-  const direct = SHEET_CAREERS.find(function(career) {
+  const careers = (config && config.careers) || SHEET_CAREERS;
+  const aliases = (config && config.careerAliases) || CAREER_ALIASES;
+  const direct = careers.find(function(career) {
     return normalizeKey_(career) === normalized;
   });
 
   if (direct) return direct;
-  if (CAREER_ALIASES[normalized]) return CAREER_ALIASES[normalized];
+  if (aliases[normalized]) return aliases[normalized];
   return cleaned;
 }
 

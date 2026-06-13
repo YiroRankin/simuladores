@@ -206,6 +206,12 @@ const sheetCareers = [
   "Veracruz",
 ];
 
+const exaniOneCareers = [
+  "Preparatoria Uno",
+  "Preparatoria Dos",
+  "UABIC",
+];
+
 const careerAliases = {
   "antropologia social": "antropologia",
   "ingenieria civil": "ing. civil",
@@ -219,6 +225,18 @@ const careerAliases = {
   "ingenieria industrial logistica": "ing. industrial logistica",
   "ingenieria mecatronica": "ing. en mecatronica",
   "ingenieria quimica industrial": "ing. quimica industrial",
+};
+
+const exaniOneCareerAliases = {
+  "prepa 1": "Preparatoria Uno",
+  "prepa uno": "Preparatoria Uno",
+  "preparatoria 1": "Preparatoria Uno",
+  "preparatoria uno": "Preparatoria Uno",
+  "prepa 2": "Preparatoria Dos",
+  "prepa dos": "Preparatoria Dos",
+  "preparatoria 2": "Preparatoria Dos",
+  "preparatoria dos": "Preparatoria Dos",
+  "uabic": "UABIC",
 };
 
 function normalizeCareer(value) {
@@ -264,6 +282,10 @@ function currentQuestionCount() {
 
 function areaElementId(area, suffix) {
   return `${area.code}${suffix}`;
+}
+
+function currentCareerOptions() {
+  return currentExamId === "exani1" ? exaniOneCareers : sheetCareers;
 }
 
 const els = {
@@ -659,10 +681,17 @@ function renderCaptureAreaSummary() {
 }
 
 function renderCaptureLists() {
-  const careers = [...sheetCareers].sort((a, b) => a.localeCompare(b, "es"));
-  els.captureCareer.innerHTML = `<option value="">Selecciona carrera</option>` + careers
+  const currentCareer = els.captureCareer.value;
+  const careers = currentExamId === "exani1"
+    ? [...currentCareerOptions()]
+    : [...currentCareerOptions()].sort((a, b) => a.localeCompare(b, "es"));
+  const label = currentExamId === "exani1" ? "Selecciona preparatoria" : "Selecciona carrera";
+  els.captureCareer.innerHTML = `<option value="">${label}</option>` + careers
     .map((career) => `<option value="${career}">${career}</option>`)
     .join("");
+  if (careers.includes(currentCareer)) {
+    els.captureCareer.value = currentCareer;
+  }
 
   const events = [...new Set(students.map((student) => student.event).concat(customEvents).filter(Boolean))].sort();
   els.eventList.innerHTML = events.map((event) => `<option value="${event}"></option>`).join("");
@@ -1152,6 +1181,11 @@ function addCustomEvent() {
 
 function matchSheetCareer(value) {
   const normalized = normalizeText(value);
+  if (currentExamId === "exani1") {
+    return exaniOneCareerAliases[normalized] ||
+      exaniOneCareers.find((career) => normalizeText(career) === normalized) ||
+      value.trim();
+  }
   return sheetCareers.find((career) => normalizeText(career) === normalized) || value.trim();
 }
 
