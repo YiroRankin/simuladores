@@ -83,10 +83,10 @@ const examProfiles = {
     photoDetection: false,
     key: "BCAABCBAACABABCABBCACACABAAABABAABCCBAAAACAABACBCAACBCAACBBCCCABBACCBABCABBACABB".split(""),
     areas: [
-      { code: "ri", label: "Redaccion indirecta", badge: "RI", start: 1, end: 20, icon: "./assets/insignia-ri.png" },
-      { code: "cl", label: "Comprension lectora", badge: "CL", start: 21, end: 40, icon: "./assets/insignia-cl.png" },
-      { code: "pm", label: "Pensamiento matematico", badge: "PM", start: 41, end: 60, icon: "./assets/insignia-pm.png" },
-      { code: "pc", label: "Pensamiento cientifico", badge: "PC", start: 61, end: 80, icon: "./assets/cerebro.png" },
+      { code: "ri", label: "Estructura de la lengua", badge: "EL", start: 1, end: 20, icon: "./assets/insignia-spk1-el.png" },
+      { code: "cl", label: "Comprension lectora", badge: "CL", start: 21, end: 40, icon: "./assets/insignia-spk1-cl.png" },
+      { code: "pm", label: "Pensamiento matematico", badge: "PM", start: 41, end: 60, icon: "./assets/insignia-spk1-pm.png" },
+      { code: "pc", label: "Pensamiento analitico", badge: "PA", start: 61, end: 80, icon: "./assets/insignia-spk1-pa.png" },
     ],
   },
 };
@@ -286,6 +286,10 @@ function areaElementId(area, suffix) {
 
 function currentCareerOptions() {
   return currentExamId === "exani1" ? exaniOneCareers : sheetCareers;
+}
+
+function currentAreaLabel(code) {
+  return currentAreas().find((area) => area.code === code)?.label || areaLabels[code] || code.toUpperCase();
 }
 
 const els = {
@@ -801,7 +805,7 @@ function renderReport(studentId) {
 
   els.advisorMessage.textContent =
     `${student.name.split(" ")[0]} ${eventDelta >= 0 ? "está por arriba" : "está por debajo"} del promedio de su evento por ${Math.abs(eventDelta)} puntos. ` +
-    `Su área más fuerte es ${areaLabels[strongest[0]]} (${formatScore(strongest[1])}) y la prioridad de refuerzo es ${areaLabels[weakest[0]]} (${formatScore(weakest[1])}).`;
+    `Su área más fuerte es ${currentAreaLabel(strongest[0])} (${formatScore(strongest[1])}) y la prioridad de refuerzo es ${currentAreaLabel(weakest[0])} (${formatScore(weakest[1])}).`;
   renderPrintReport({ student, eventAvg, cutoff, delta });
 }
 
@@ -844,10 +848,10 @@ function renderPrintReport(context) {
       : `Subir al menos ${formatScore(Math.abs(delta) + 10)} puntos para rebasar el corte.`
     : "Definir meta con tutor según carrera objetivo.";
   const recommendation = student.scores.global >= eventAvg
-    ? `Mantener ritmo y convertir ${areaLabels[weakest[0]]} en mejora puntual.`
-    : `Priorizar práctica guiada en ${areaLabels[weakest[0]]} antes del siguiente simulador.`;
+    ? `Mantener ritmo y convertir ${currentAreaLabel(weakest[0])} en mejora puntual.`
+    : `Priorizar práctica guiada en ${currentAreaLabel(weakest[0])} antes del siguiente simulador.`;
 
-  els.printStudyFocus.textContent = `${areaLabels[weakest[0]]} (${formatScore(weakest[1])}). Fortaleza: ${areaLabels[strongest[0]]}.`;
+  els.printStudyFocus.textContent = `${currentAreaLabel(weakest[0])} (${formatScore(weakest[1])}). Fortaleza: ${currentAreaLabel(strongest[0])}.`;
   els.printNextGoal.textContent = nextGoal;
   els.printRecommendation.textContent = recommendation;
 }

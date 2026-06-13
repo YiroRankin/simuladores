@@ -128,10 +128,10 @@ const EXAM_CONFIGS = {
     careers: EXANI_I_CAREERS,
     careerAliases: EXANI_I_CAREER_ALIASES,
     areas: [
-      { code: "ri", name: "Redaccion indirecta", start: 1, end: 20 },
+      { code: "ri", name: "Estructura de la lengua", start: 1, end: 20 },
       { code: "cl", name: "Comprension lectora", start: 21, end: 40 },
       { code: "pm", name: "Pensamiento matematico", start: 41, end: 60 },
-      { code: "pc", name: "Pensamiento cientifico", start: 61, end: 80 }
+      { code: "pc", name: "Pensamiento analitico", start: 61, end: 80 }
     ]
   }
 };
