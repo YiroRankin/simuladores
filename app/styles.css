@@ -2076,7 +2076,7 @@ button:disabled {
 @media print {
   @page {
     size: letter landscape;
-    margin: 11mm;
+    margin: 8mm;
   }
 
   body {
@@ -2149,18 +2149,18 @@ button:disabled {
     display: flex;
     align-items: end;
     justify-content: space-between;
-    min-height: 58px;
-    padding: 0 118px 12px 0;
+    min-height: 46px;
+    padding: 0 98px 8px 0;
     border-bottom: 3px solid var(--purple);
   }
 
   .print-header::before {
     content: "";
     position: absolute;
-    right: 74px;
+    right: 60px;
     bottom: -28px;
-    width: 210px;
-    height: 72px;
+    width: 178px;
+    height: 62px;
     background: linear-gradient(90deg, rgba(86, 56, 183, 0.11), rgba(19, 230, 163, 0.12));
     border-radius: 999px;
     transform: rotate(-6deg);
@@ -2170,15 +2170,15 @@ button:disabled {
     position: absolute;
     right: 4px;
     bottom: -20px;
-    width: 104px;
-    height: 104px;
+    width: 88px;
+    height: 88px;
     object-fit: contain;
   }
 
   .print-header strong {
     display: block;
     color: var(--purple-dark);
-    font-size: 28px;
+    font-size: 24px;
     font-weight: 900;
     letter-spacing: 0.04em;
   }
@@ -2193,8 +2193,8 @@ button:disabled {
   .print-kpis,
   .print-columns {
     display: grid;
-    gap: 10px;
-    margin-top: 14px;
+    gap: 8px;
+    margin-top: 9px;
   }
 
   .print-student {
@@ -2213,7 +2213,7 @@ button:disabled {
   .print-kpis div,
   .print-columns article,
   .print-insight {
-    padding: 12px 14px;
+    padding: 9px 12px;
     border: 1px solid #cfc9ef;
     border-radius: 10px;
     break-inside: avoid;
@@ -2233,16 +2233,16 @@ button:disabled {
     display: block;
     margin-top: 5px;
     color: var(--ink);
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 900;
   }
 
   .print-kpis strong {
-    font-size: 26px;
+    font-size: 22px;
   }
 
   .print-report h3 {
-    margin-bottom: 8px;
+    margin-bottom: 6px;
     color: var(--purple);
     font-size: 13px;
     font-weight: 900;
@@ -2252,15 +2252,15 @@ button:disabled {
   .print-report p {
     margin: 0;
     color: var(--muted);
-    font-size: 13px;
+    font-size: 11.5px;
     font-weight: 700;
-    line-height: 1.45;
+    line-height: 1.35;
   }
 
   .print-illustrated {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 96px;
-    gap: 12px;
+    grid-template-columns: minmax(0, 1fr) 78px;
+    gap: 10px;
     align-items: center;
     overflow: hidden;
   }
@@ -2271,23 +2271,23 @@ button:disabled {
 
   .print-illustrated img {
     justify-self: end;
-    width: 96px;
-    max-height: 112px;
+    width: 78px;
+    max-height: 92px;
     object-fit: contain;
   }
 
   .print-cutoff-box img {
-    width: 106px;
-    max-height: 94px;
+    width: 88px;
+    max-height: 78px;
   }
 
   .print-area-box {
-    grid-template-columns: minmax(0, 1fr) 78px;
+    grid-template-columns: minmax(0, 1fr) 66px;
   }
 
   .print-area-box img {
-    width: 88px;
-    max-height: 116px;
+    width: 72px;
+    max-height: 92px;
     opacity: 0.92;
   }
 
@@ -2323,20 +2323,20 @@ button:disabled {
   }
 
   .print-insight {
-    margin-top: 10px;
-    padding-top: 10px;
-    padding-bottom: 10px;
+    margin-top: 8px;
+    padding-top: 8px;
+    padding-bottom: 8px;
   }
 
   .print-insight p {
-    font-size: 11px;
-    line-height: 1.35;
+    font-size: 10.5px;
+    line-height: 1.3;
   }
 
   .print-action-plan {
     display: block;
-    margin-top: 12px;
-    padding: 10px 14px 12px;
+    margin-top: 8px;
+    padding: 7px 12px 6px;
     border: 1px solid #cfc9ef;
     border-radius: 10px;
     break-inside: avoid;
@@ -2348,8 +2348,8 @@ button:disabled {
 
   .print-scale-head {
     display: grid;
-    grid-template-columns: 180px minmax(0, 1fr);
-    gap: 14px;
+    grid-template-columns: 142px minmax(0, 1fr);
+    gap: 10px;
     align-items: start;
   }
 
@@ -2359,30 +2359,30 @@ button:disabled {
 
   .print-scale-head p {
     margin: 0;
-    font-size: 12px;
+    font-size: 10.5px;
   }
 
   .print-dual-scale {
-    --scale-pad: 24px;
-    margin-top: 8px;
-    padding-top: 4px;
+    --scale-pad: 22px;
+    margin-top: 4px;
+    padding-top: 2px;
   }
 
   .print-dual-scale .scale-label-row {
-    height: 18px;
-    font-size: 10px;
+    height: 14px;
+    font-size: 9px;
   }
 
   .print-dual-scale .scale-track {
-    height: 30px;
-    margin: 6px 0 18px;
+    height: 22px;
+    margin: 3px 0 13px;
   }
 
   .print-dual-scale .scale-marker {
-    bottom: -14px;
-    min-width: 58px;
-    padding: 4px 7px;
-    font-size: 13px;
+    bottom: -12px;
+    min-width: 50px;
+    padding: 3px 6px;
+    font-size: 11px;
     border-width: 2px;
   }
 

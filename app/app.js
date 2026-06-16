@@ -203,7 +203,13 @@ const examProfiles = {
   },
 };
 
-let currentExamId = "exani2";
+function initialExamId() {
+  const requested = normalizeConfigKey(urlParams().get("examen") || urlParams().get("exam"));
+  if (requested === "exani1" || requested === "exani i") return "exani1";
+  return "exani2";
+}
+
+let currentExamId = initialExamId();
 let answerKey = [...examProfiles[currentExamId].key];
 
 const uady2025 = [
