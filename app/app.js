@@ -58,6 +58,7 @@ let detectedResponses = [];
 let batchRoster = [];
 let batchItems = [];
 let customEvents = [];
+let eventCatalog = [];
 let captureSource = "captura_manual";
 
 const roleModules = {
@@ -134,6 +135,11 @@ function allowedModules() {
     ? configured
     : roleModules[configuredUser().role] || roleModules.administrador;
   return new Set(modules);
+}
+
+function canManageEvents() {
+  const modules = allowedModules();
+  return modules.has("base") || modules.has("batch") || modules.has("photo");
 }
 
 function configuredStartView() {
@@ -869,6 +875,12 @@ function loadPayloadJsonp(apiUrl) {
 }
 
 function applyStudentPayload(payload) {
+  if (Array.isArray(payload.events)) {
+    eventCatalog = payload.events
+      .map((event) => typeof event === "string" ? event : event?.name)
+      .filter(Boolean);
+  }
+
   if (!Array.isArray(payload.students)) {
     throw new Error("El endpoint no regreso alumnos");
   }
@@ -916,6 +928,9 @@ function applyPermissions() {
   if (!activeView || !modules.has(activeView) || targetView !== activeView) {
     setActiveView(targetView);
   }
+
+  const eventField = document.querySelector(".event-field");
+  if (eventField) eventField.hidden = !canManageEvents();
 }
 
 function renderOperatorStatus() {
@@ -948,7 +963,7 @@ function selectedCampus() {
 
 function renderOptions() {
   const currentEvent = els.eventFilter.value || "all";
-  const events = ["all", ...new Set(students.map((student) => student.event).concat(customEvents).filter(Boolean))];
+  const events = ["all", ...allEvents()];
   els.eventFilter.innerHTML = events
     .map((event) => `<option value="${event}">${event === "all" ? "Todos los eventos" : event}</option>`)
     .join("");
@@ -956,6 +971,14 @@ function renderOptions() {
   renderCaptureLists();
   renderBaseOptions();
   renderStudentOptions();
+}
+
+function allEvents() {
+  return [...new Set(eventCatalog
+    .concat(customEvents)
+    .concat(students.map((student) => student.event))
+    .filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, "es"));
 }
 
 function renderExamControls() {
@@ -1046,6 +1069,7 @@ function renderCaptureAreaSummary() {
 
 function renderCaptureLists() {
   const currentCareer = els.captureCareer.value;
+  const currentEvent = els.captureEvent.value;
   const careers = currentExamId === "exani1"
     ? [...currentCareerOptions()]
     : [...currentCareerOptions()].sort((a, b) => a.localeCompare(b, "es"));
@@ -1057,9 +1081,17 @@ function renderCaptureLists() {
     els.captureCareer.value = currentCareer;
   }
 
-  const events = [...new Set(students.map((student) => student.event).concat(customEvents).filter(Boolean))].sort();
+  const events = allEvents();
   els.eventList.innerHTML = events.map((event) => `<option value="${event}"></option>`).join("");
-  els.captureYear.value = "2025";
+  els.captureEvent.innerHTML = `<option value="">Selecciona evento</option>` + events
+    .map((event) => `<option value="${escapeHtml(event)}">${escapeHtml(event)}</option>`)
+    .join("");
+  if (events.includes(currentEvent)) {
+    els.captureEvent.value = currentEvent;
+  } else if (lastCaptureEvent && events.includes(lastCaptureEvent)) {
+    els.captureEvent.value = lastCaptureEvent;
+  }
+  els.captureYear.value = "2026";
 }
 
 function renderStudentOptions(preferredStudentId = "") {
@@ -1793,7 +1825,7 @@ function clearCaptureForm() {
   captureSource = "captura_manual";
   els.captureForm.reset();
   els.answersGrid.querySelectorAll(".answer-item").forEach((item) => item.classList.remove("answered"));
-  els.captureYear.value = "2025";
+  els.captureYear.value = "2026";
   els.captureVersion.value = "1";
   els.postSaveActions.hidden = true;
   els.saveMessage.className = "save-message";
@@ -1917,6 +1949,19 @@ async function appendCapturePayload(payload) {
   return loadPayloadJsonp(url);
 }
 
+async function appendEventPayload(name) {
+  const apiUrl = window.SIMULADORES_CONFIG?.apiUrl?.trim();
+  if (!apiUrl) throw new Error("Falta configurar apiUrl en config.js.");
+  const payload = {
+    name,
+    campus: selectedCampus(),
+    exam: currentExamId,
+  };
+  const separator = apiUrl.includes("?") ? "&" : "?";
+  const url = `${apiUrl}${separator}action=appendEvent&payload=${encodeURIComponent(JSON.stringify(payload))}`;
+  return loadPayloadJsonp(url);
+}
+
 async function showSavedReport() {
   let saved = findSavedStudent() || students.find((student) => student.id === lastSavedStudentId);
   if (!saved) {
@@ -1952,23 +1997,46 @@ function newBlankCapture() {
   els.captureName.focus();
 }
 
-function addCustomEvent() {
+async function addCustomEvent() {
   const eventName = els.newEventInput.value.trim();
   if (!eventName) return;
 
   const exists = students.some((student) => normalizeText(student.event) === normalizeText(eventName)) ||
+    eventCatalog.some((event) => normalizeText(event) === normalizeText(eventName)) ||
     customEvents.some((event) => normalizeText(event) === normalizeText(eventName));
 
-  if (!exists) {
-    customEvents.push(eventName);
-    renderOptions();
-  }
+  els.addEventButton.disabled = true;
+  try {
+    if (!exists && window.SIMULADORES_CONFIG?.apiUrl?.trim()) {
+      const result = await appendEventPayload(eventName);
+      if (!result.ok) throw new Error(result.error || "No se pudo guardar el evento");
+      if (Array.isArray(result.events)) {
+        eventCatalog = result.events
+          .map((event) => typeof event === "string" ? event : event?.name)
+          .filter(Boolean);
+      }
+    } else if (!exists) {
+      customEvents.push(eventName);
+    }
 
-  els.eventFilter.value = eventName;
-  els.captureEvent.value = eventName;
-  els.newEventInput.value = "";
-  renderStudentOptions();
-  updateCapturePreview();
+    if (!eventCatalog.some((event) => normalizeText(event) === normalizeText(eventName)) &&
+      !customEvents.some((event) => normalizeText(event) === normalizeText(eventName))) {
+      customEvents.push(eventName);
+    }
+
+    renderOptions();
+
+    els.eventFilter.value = eventName;
+    els.captureEvent.value = eventName;
+    els.batchEvent.value = eventName;
+    els.newEventInput.value = "";
+    renderStudentOptions();
+    updateCapturePreview();
+  } catch (error) {
+    window.alert(`No se pudo guardar el evento: ${error.message}`);
+  } finally {
+    els.addEventButton.disabled = false;
+  }
 }
 
 function printBaseReport() {

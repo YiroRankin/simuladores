@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="./styles.css?v=20260616-access-modes" />
+    <link rel="stylesheet" href="./styles.css?v=20260616-event-catalog" />
   </head>
   <body>
     <main class="app-shell">
@@ -343,12 +343,13 @@
             </label>
             <label>
               <span>Evento de aplicación</span>
-              <input id="captureEvent" name="event" type="text" list="eventList" required />
+              <select id="captureEvent" name="event" required></select>
               <datalist id="eventList"></datalist>
             </label>
             <label>
               <span>Año</span>
               <select id="captureYear" name="year" required>
+                <option value="2026">2026</option>
                 <option value="2025">2025</option>
                 <option value="2024">2024</option>
                 <option value="2023">2023</option>
@@ -572,6 +573,7 @@
               <label>
                 <span>Año</span>
                 <select id="batchYear">
+                  <option value="2026">2026</option>
                   <option value="2025">2025</option>
                   <option value="2024">2024</option>
                   <option value="2023">2023</option>
@@ -705,6 +707,6 @@
     </main>
 
     <script src="./config.js"></script>
-    <script src="./app.js?v=20260616-access-modes"></script>
+    <script src="./app.js?v=20260616-event-catalog"></script>
   </body>
 </html>

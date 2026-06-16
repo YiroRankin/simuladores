@@ -11,6 +11,8 @@
 - [x] Permitir habilitar o deshabilitar las pestanas `Lote` y `Foto de hoja` por usuario.
 - [x] Mantener `Reporte` y `Captura` como base operativa.
 - [x] Permitir modos por URL para abrir la misma app con menus distintos.
+- [x] Guardar catalogo de eventos en la pestana `Eventos` aunque todavia no existan capturas.
+- [x] Usar selector cerrado de evento en Captura para evitar nombres escritos de formas distintas.
 - Ocultar acciones no permitidas desde la interfaz y validar permisos tambien en backend.
 
 ## URLs operativas

@@ -1,5 +1,6 @@
 const SPREADSHEET_ID = "1t6V2SDhLmD1pU9tmk_QZwL6iAKtsaiV0E6bHp4QO__I";
-const SHEET_YEARS = ["2021", "2022", "2023", "2024", "2025"];
+const SHEET_YEARS = ["2021", "2022", "2023", "2024", "2025", "2026"];
+const EVENTS_SHEET = "Eventos";
 const SHEET_CAREERS = [
   "Actuaría",
   "Administración",
@@ -225,6 +226,8 @@ function doGet(e) {
   const action = String(params.action || "read").trim();
   const payload = action === "appendCapture"
     ? appendCapture_(params)
+    : action === "appendEvent"
+      ? appendEvent_(params)
     : action === "nameOcr"
       ? nameOcr_(params.payload)
       : buildPayload_(params);
@@ -236,7 +239,9 @@ function doPost(e) {
   const action = String(params.action || "").trim();
   const payload = action === "nameOcr"
     ? nameOcr_(e && e.postData && e.postData.contents)
-    : appendCapture_(params, e && e.postData && e.postData.contents);
+    : action === "appendEvent"
+      ? appendEvent_(params, e && e.postData && e.postData.contents)
+      : appendCapture_(params, e && e.postData && e.postData.contents);
   return respond_(payload, "");
 }
 
@@ -292,7 +297,7 @@ function appendCapture_(params, rawBody) {
       payload.email || "",
       payload.career,
       payload.event,
-      payload.year || "2025",
+      payload.year || "2026",
       payload.grade || "",
       payload.group || "",
       payload.version || "1"
@@ -319,6 +324,46 @@ function appendCapture_(params, rawBody) {
     };
   } catch (error) {
     rollbackCaptureWrite_(captura, claves, resultados, targetRow, config);
+    return {
+      ok: false,
+      error: String(error && error.message ? error.message : error)
+    };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function appendEvent_(params, rawBody) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+
+  try {
+    const payload = parseEventPayload_(params, rawBody);
+    const eventName = cleanText_(payload.name || payload.event);
+    const campus = cleanText_(payload.campus || "General");
+    const exam = getExamConfig_(payload.exam || params.exam).id;
+    if (!eventName) throw new Error("Falta nombre del evento");
+
+    const spreadsheet = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = getOrCreateEventsSheet_(spreadsheet);
+    const events = readEvents_(spreadsheet);
+    const exists = events.some(function(event) {
+      return normalizeKey_(event.name) === normalizeKey_(eventName);
+    });
+
+    if (!exists) {
+      sheet.appendRow([eventName, campus, exam, "Activo", new Date()]);
+      SpreadsheetApp.flush();
+    }
+
+    return {
+      ok: true,
+      event: eventName,
+      existing: exists,
+      events: readEvents_(spreadsheet),
+      message: exists ? "Evento existente" : "Evento guardado"
+    };
+  } catch (error) {
     return {
       ok: false,
       error: String(error && error.message ? error.message : error)
@@ -462,13 +507,29 @@ function parseCapturePayload_(params, rawBody) {
   };
 }
 
+function parseEventPayload_(params, rawBody) {
+  if (params && params.payload) {
+    return JSON.parse(params.payload);
+  }
+
+  if (rawBody) {
+    return JSON.parse(rawBody);
+  }
+
+  return {
+    name: cleanText_(params.name || params.event),
+    campus: cleanText_(params.campus),
+    exam: cleanText_(params.exam || "exani2")
+  };
+}
+
 function validateCapturePayload_(payload, config) {
   if (!payload) throw new Error("Payload vacio");
   payload.name = cleanText_(payload.name);
   payload.email = cleanText_(payload.email);
   payload.career = normalizeSheetCareer_(payload.career, config);
   payload.event = cleanText_(payload.event);
-  payload.year = cleanText_(payload.year || "2025");
+  payload.year = cleanText_(payload.year || "2026");
   payload.version = cleanText_(payload.version || "1");
   payload.campus = cleanText_(payload.campus || payload.capturedBy || "Sin campus");
   payload.capturedBy = cleanText_(payload.capturedBy || "Sin identificar");
@@ -479,7 +540,7 @@ function validateCapturePayload_(payload, config) {
   if (!payload.career) throw new Error("Falta carrera");
   if (config.careers.indexOf(payload.career) < 0) throw new Error("Carrera fuera del catálogo configurado: " + payload.career);
   if (!payload.event) throw new Error("Falta evento");
-  if (SHEET_YEARS.indexOf(payload.year) < 0) throw new Error("Año fuera del catálogo del Sheet: " + payload.year + ". Usa 2021, 2022, 2023, 2024 o 2025.");
+  if (SHEET_YEARS.indexOf(payload.year) < 0) throw new Error("Año fuera del catálogo del Sheet: " + payload.year + ". Usa 2021, 2022, 2023, 2024, 2025 o 2026.");
   if (!Array.isArray(payload.responses) || payload.responses.length !== config.questionCount) {
     throw new Error("Deben existir " + config.questionCount + " respuestas");
   }
@@ -564,6 +625,7 @@ function buildPayload_(params) {
   const config = getExamConfig_(params && params.exam);
   const spreadsheet = SpreadsheetApp.openById(SPREADSHEET_ID);
   const captura = spreadsheet.getSheetByName(config.captureSheet);
+  const events = readEvents_(spreadsheet);
 
   if (!captura) {
     return {
@@ -576,6 +638,7 @@ function buildPayload_(params) {
         source: "Google Sheets"
       },
       key: getAnswerKey_(spreadsheet, config),
+      events: events,
       students: []
     };
   }
@@ -627,6 +690,7 @@ function buildPayload_(params) {
       source: "Google Sheets"
     },
     key: key,
+    events: events,
     students: students
   };
 }
@@ -656,6 +720,45 @@ function ensureCaptureHeader_(sheet, config) {
   }
   headers.push("Campus", "Fecha captura", "Fuente");
   sheet.getRange(3, 1, 1, headers.length).setValues([headers]);
+}
+
+function getOrCreateEventsSheet_(spreadsheet) {
+  let sheet = spreadsheet.getSheetByName(EVENTS_SHEET);
+  if (!sheet) {
+    sheet = spreadsheet.insertSheet(EVENTS_SHEET);
+  }
+  sheet.getRange(1, 1, 1, 5).setValues([["Evento", "Campus", "Examen", "Estatus", "Fecha alta"]]);
+  return sheet;
+}
+
+function readEvents_(spreadsheet) {
+  const sheet = spreadsheet.getSheetByName(EVENTS_SHEET);
+  if (!sheet) return [];
+
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return [];
+
+  const rows = sheet.getRange(2, 1, lastRow - 1, 5).getValues();
+  const unique = {};
+  rows.forEach(function(row) {
+    const name = cleanText_(row[0]);
+    if (!name) return;
+    const status = cleanText_(row[3] || "Activo");
+    if (normalizeKey_(status) === "inactivo") return;
+    const key = normalizeKey_(name);
+    if (!unique[key]) {
+      unique[key] = {
+        name: name,
+        campus: cleanText_(row[1]),
+        exam: cleanText_(row[2]),
+        status: status
+      };
+    }
+  });
+
+  return Object.keys(unique)
+    .map(function(key) { return unique[key]; })
+    .sort(function(a, b) { return a.name.localeCompare(b.name); });
 }
 
 function getAnswerKey_(spreadsheet, config) {
