@@ -67,10 +67,55 @@ const roleModules = {
   consulta: ["report", "base"],
 };
 
+const accessModes = {
+  captura: {
+    modules: ["report", "capture"],
+    startView: "capture",
+  },
+  base: {
+    modules: ["report", "capture", "base"],
+    startView: "base",
+  },
+  escuela: {
+    modules: ["report", "capture", "base"],
+    startView: "base",
+  },
+  admin: {
+    modules: ["report", "capture", "batch", "photo", "base"],
+    startView: "report",
+  },
+  completo: {
+    modules: ["report", "capture", "batch", "photo", "base"],
+    startView: "report",
+  },
+};
+
 const campusOptions = ["Campeche", "Mérida", "Playa del Carmen", "Veracruz"];
 
 function appConfig() {
   return window.SIMULADORES_CONFIG || {};
+}
+
+function urlParams() {
+  return new URLSearchParams(window.location.search);
+}
+
+function normalizeConfigKey(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+}
+
+function activeAccessMode() {
+  const requested = normalizeConfigKey(urlParams().get("modo") || appConfig().accessMode);
+  return accessModes[requested] || null;
+}
+
+function normalizeCampus(value) {
+  const requested = normalizeConfigKey(value);
+  return campusOptions.find((campus) => normalizeConfigKey(campus) === requested) || "Veracruz";
 }
 
 function configuredUser() {
@@ -82,11 +127,24 @@ function configuredUser() {
 }
 
 function allowedModules() {
+  const mode = activeAccessMode();
+  if (mode) return new Set(mode.modules);
   const configured = appConfig().permissions?.modules;
   const modules = Array.isArray(configured) && configured.length
     ? configured
     : roleModules[configuredUser().role] || roleModules.administrador;
   return new Set(modules);
+}
+
+function configuredStartView() {
+  const modules = allowedModules();
+  const requestedView = normalizeConfigKey(urlParams().get("vista"));
+  if (requestedView && modules.has(requestedView)) return requestedView;
+  const modeView = activeAccessMode()?.startView;
+  if (modeView && modules.has(modeView)) return modeView;
+  const configView = appConfig().startView;
+  if (configView && modules.has(configView)) return configView;
+  return [...modules][0] || "capture";
 }
 
 function canAccessView(viewName) {
@@ -853,14 +911,10 @@ function applyPermissions() {
     view.hidden = !allowed;
     if (!allowed) view.classList.remove("active");
   });
-  const startView = appConfig().startView;
-  if (startView && modules.has(startView)) {
-    setActiveView(startView);
-    return;
-  }
   const activeView = document.querySelector(".view.active")?.dataset.view;
-  if (!activeView || !modules.has(activeView)) {
-    setActiveView([...modules][0] || "capture");
+  const targetView = configuredStartView();
+  if (!activeView || !modules.has(activeView) || targetView !== activeView) {
+    setActiveView(targetView);
   }
 }
 
@@ -874,7 +928,7 @@ function renderOperatorStatus() {
     campusStatus.id = "campusStatus";
     statusMeta.appendChild(campusStatus);
   }
-  const configuredCampus = appConfig().campus || "Veracruz";
+  const configuredCampus = normalizeCampus(urlParams().get("campus") || appConfig().campus);
   campusStatus.innerHTML = `
     <span>Campus</span>
     <select id="campusSelect" aria-label="Campus">
@@ -883,15 +937,13 @@ function renderOperatorStatus() {
   `;
   const campusSelect = document.querySelector("#campusSelect");
   if (campusSelect) {
-    campusSelect.value = campusOptions.includes(configuredCampus) ? configuredCampus : "Veracruz";
+    campusSelect.value = configuredCampus;
   }
 }
 
 function selectedCampus() {
   const campusSelect = document.querySelector("#campusSelect");
-  const configuredCampus = appConfig().campus || "Veracruz";
-  const campus = campusSelect?.value || configuredCampus;
-  return campusOptions.includes(campus) ? campus : "Veracruz";
+  return normalizeCampus(campusSelect?.value || urlParams().get("campus") || appConfig().campus);
 }
 
 function renderOptions() {

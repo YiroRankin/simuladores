@@ -10,7 +10,15 @@
 
 - [x] Permitir habilitar o deshabilitar las pestanas `Lote` y `Foto de hoja` por usuario.
 - [x] Mantener `Reporte` y `Captura` como base operativa.
+- [x] Permitir modos por URL para abrir la misma app con menus distintos.
 - Ocultar acciones no permitidas desde la interfaz y validar permisos tambien en backend.
+
+## URLs operativas
+
+- Captura Veracruz: usar la URL normal, o agregar `?modo=captura&campus=Veracruz`.
+- Reporte base / escuela: agregar `?modo=base` o `?modo=escuela`.
+- Vista completa interna: agregar `?modo=admin`.
+- Tambien se puede preseleccionar campus con `?campus=Campeche`, `?campus=Merida`, `?campus=Playa%20del%20Carmen` o `?campus=Veracruz`.
 
 ## Panel Base
 

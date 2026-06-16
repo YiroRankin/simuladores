@@ -5,6 +5,7 @@ window.SIMULADORES_CONFIG = {
     role: "capturista",
   },
   campus: "Veracruz",
+  accessMode: "captura",
   permissions: {
     modules: ["report", "capture"],
   },
