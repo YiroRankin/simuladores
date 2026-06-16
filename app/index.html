@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="./styles.css?v=20260616-event-catalog" />
+    <link rel="stylesheet" href="./styles.css?v=20260616-print-report" />
   </head>
   <body>
     <main class="app-shell">
@@ -232,7 +232,7 @@
         </section>
 
         <section class="panel insight">
-          <p class="card-title">Lectura para tutor/comercial</p>
+          <p class="card-title">Lectura para el tutor</p>
           <p id="advisorMessage">-</p>
         </section>
 
@@ -261,9 +261,13 @@
           </section>
           <section class="print-kpis">
             <div><span>Indice CENEVAL</span><strong id="printGlobalScore">-</strong></div>
+            <div><span>Porcentaje de aciertos</span><strong id="printAccuracyScore">-</strong></div>
             <div><span>Punto de corte</span><strong id="printCutoffScore">-</strong></div>
             <div><span>Diferencia</span><strong id="printCutoffDelta">-</strong></div>
-            <div><span>Promedio evento</span><strong id="printEventAverage">-</strong></div>
+          </section>
+          <section class="print-insight">
+            <h3>Lectura para el tutor</h3>
+            <p id="printAdvisorMessage">-</p>
           </section>
           <section class="print-columns">
             <article class="print-illustrated print-cutoff-box">
@@ -277,19 +281,18 @@
               <div>
                 <h3>Resultados por área</h3>
                 <table>
+                  <thead>
+                    <tr><th>Área</th><th>Aciertos</th><th>Índice</th></tr>
+                  </thead>
                   <tbody>
-                    <tr><th>Redacción indirecta</th><td id="printRiScore">-</td></tr>
-                    <tr><th>Comprensión lectora</th><td id="printClScore">-</td></tr>
-                    <tr><th>Pensamiento matemático</th><td id="printPmScore">-</td></tr>
+                    <tr><th>Redacción indirecta</th><td>-</td><td id="printRiScore">-</td></tr>
+                    <tr><th>Comprensión lectora</th><td>-</td><td id="printClScore">-</td></tr>
+                    <tr><th>Pensamiento matemático</th><td>-</td><td id="printPmScore">-</td></tr>
                   </tbody>
                 </table>
               </div>
               <img src="./assets/unicornio.png" alt="" />
             </article>
-          </section>
-          <section class="print-insight">
-            <h3>Lectura para tutor/comercial</h3>
-            <p id="printAdvisorMessage">-</p>
           </section>
           <section class="print-action-plan">
             <div class="print-scale-head">
@@ -707,6 +710,6 @@
     </main>
 
     <script src="./config.js"></script>
-    <script src="./app.js?v=20260616-event-catalog"></script>
+    <script src="./app.js?v=20260616-print-report"></script>
   </body>
 </html>

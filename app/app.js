@@ -642,9 +642,9 @@ const els = {
   printStudentCareer: document.querySelector("#printStudentCareer"),
   printStudentEvent: document.querySelector("#printStudentEvent"),
   printGlobalScore: document.querySelector("#printGlobalScore"),
+  printAccuracyScore: document.querySelector("#printAccuracyScore"),
   printCutoffScore: document.querySelector("#printCutoffScore"),
   printCutoffDelta: document.querySelector("#printCutoffDelta"),
-  printEventAverage: document.querySelector("#printEventAverage"),
   printCutoffMessage: document.querySelector("#printCutoffMessage"),
   printScale: document.querySelector("#printScale"),
   printScaleMessage: document.querySelector("#printScaleMessage"),
@@ -687,6 +687,18 @@ function studentAccuracyPercent(student) {
     return (correct / currentQuestionCount()) * 100;
   }
   return cenevalToPercent(student.scores.global);
+}
+
+function studentAreaCorrect(student, area) {
+  if (!Array.isArray(student.responses) || student.responses.length < area.end || answerKey.length < area.end) {
+    return null;
+  }
+
+  let correct = 0;
+  for (let index = area.start - 1; index <= area.end - 1; index++) {
+    if (student.responses[index] && student.responses[index] === answerKey[index]) correct++;
+  }
+  return correct;
 }
 
 function scoreScaleValue(score, minScore = 700, maxScore = 1300) {
@@ -1048,6 +1060,7 @@ function renderAreaCards() {
       </div>
       <h3>${area.label}</h3>
       <strong id="${areaElementId(area, "Score")}">-</strong>
+      <small class="area-correct" id="${areaElementId(area, "Correct")}">- aciertos</small>
       <div class="area-compare neutral" id="${areaElementId(area, "Compare")}">
         <span>${averageLabel} <b id="${areaElementId(area, "Average")}">-</b></span>
         <em id="${areaElementId(area, "Delta")}">-</em>
@@ -1480,13 +1493,13 @@ function renderEmptyReport() {
   if (els.scoreScale) renderScoreScale(els.scoreScale, { score: 700, showAccuracy: false });
   if (els.scaleStatusBadge) els.scaleStatusBadge.textContent = "-";
   if (els.scaleSummary) els.scaleSummary.textContent = "Selecciona un alumno para ver su posicion en ambas escalas.";
-  els.riMessage.textContent = "-";
-  els.clMessage.textContent = "-";
-  els.pmMessage.textContent = "-";
-  ["ri", "cl", "pm"].forEach((area) => {
-    els[`${area}Average`].textContent = "-";
-    els[`${area}Delta`].textContent = "-";
-    els[`${area}Compare`].className = "area-compare neutral";
+  currentAreas().forEach((area) => {
+    document.querySelector(`#${areaElementId(area, "Correct")}`)?.replaceChildren(document.createTextNode("- aciertos"));
+    document.querySelector(`#${areaElementId(area, "Message")}`)?.replaceChildren(document.createTextNode("-"));
+    document.querySelector(`#${areaElementId(area, "Average")}`)?.replaceChildren(document.createTextNode("-"));
+    document.querySelector(`#${areaElementId(area, "Delta")}`)?.replaceChildren(document.createTextNode("-"));
+    const compare = document.querySelector(`#${areaElementId(area, "Compare")}`);
+    if (compare) compare.className = "area-compare neutral";
   });
   els.advisorMessage.textContent = "-";
   renderPrintReport(null);
@@ -1547,7 +1560,10 @@ function renderReport(studentId) {
 
   currentAreas().forEach((area) => {
     const areaDelta = student.scores[area.code] - areaAverages[area.code];
+    const areaCorrect = studentAreaCorrect(student, area);
+    const areaTotal = area.end - area.start + 1;
     document.querySelector(`#${areaElementId(area, "Score")}`).textContent = formatScore(student.scores[area.code]);
+    document.querySelector(`#${areaElementId(area, "Correct")}`).textContent = areaCorrect === null ? "- aciertos" : `${areaCorrect}/${areaTotal} aciertos`;
     document.querySelector(`#${areaElementId(area, "Average")}`).textContent = formatScore(areaAverages[area.code]);
     document.querySelector(`#${areaElementId(area, "Delta")}`).textContent = formatAreaDelta(areaDelta);
     document.querySelector(`#${areaElementId(area, "Compare")}`).className = `area-compare ${areaDelta > 0 ? "positive" : areaDelta < 0 ? "negative" : "neutral"}`;
@@ -1579,29 +1595,27 @@ function renderDualScale(student) {
 
 function advisorMessageFor(student, eventDelta, cutoffDelta, weakestArea, strongestArea) {
   const firstName = student.name.split(" ")[0];
-  const eventRead = eventDelta >= 0
-    ? `llega por arriba del promedio del evento, una buena puerta de entrada para reconocer avance`
-    : `esta por debajo del promedio del evento, asi que conviene abrir la conversacion desde oportunidad de mejora`;
   const cutoffRead = cutoffDelta === null
-    ? "sin referencia de corte disponible para esta carrera"
+    ? "no tiene corte disponible para esta carrera"
     : cutoffDelta >= 0
-      ? `con margen positivo frente al corte; el enfoque comercial debe ser sostener resultado y evitar retrocesos`
-      : `a ${formatScore(Math.abs(cutoffDelta))} puntos del corte; el enfoque comercial debe ser convertir esa brecha en un plan concreto`;
+      ? `queda arriba del corte por ${formatScore(cutoffDelta)} puntos`
+      : `queda a ${formatScore(Math.abs(cutoffDelta))} puntos del corte`;
+  const eventRead = eventDelta >= 0 ? "por arriba del promedio del evento" : "por debajo del promedio del evento";
 
-  return `Para tutor/comercial: ${firstName} ${eventRead}. Esta ${cutoffRead}. Recomienda una ruta de preparacion centrada en ${currentAreaLabel(weakestArea[0])}, usando ${currentAreaLabel(strongestArea[0])} como fortaleza para generar confianza y cerrar con una meta medible para el siguiente simulador.`;
+  return `Para tutor: ${firstName} está ${eventRead} y ${cutoffRead}. Priorizar ${currentAreaLabel(weakestArea[0])}; usar ${currentAreaLabel(strongestArea[0])} como fortaleza y fijar una meta concreta para el siguiente simulador.`;
 }
 
 function renderPrintReport(context) {
   if (!context) {
     [
-      "printStudentName", "printStudentCareer", "printStudentEvent", "printGlobalScore", "printCutoffScore",
-      "printCutoffDelta", "printEventAverage", "printCutoffMessage", "printRiScore", "printClScore",
+      "printStudentName", "printStudentCareer", "printStudentEvent", "printGlobalScore", "printAccuracyScore", "printCutoffScore",
+      "printCutoffDelta", "printCutoffMessage", "printRiScore", "printClScore",
       "printPmScore", "printAdvisorMessage", "printStudyFocus", "printNextGoal", "printRecommendation",
     ].forEach((key) => {
-      els[key].textContent = "-";
+      if (els[key]) els[key].textContent = "-";
     });
     if (els.printAreaRows) {
-      els.printAreaRows.innerHTML = currentAreas().map((area) => `<tr><th>${area.label}</th><td>-</td></tr>`).join("");
+      els.printAreaRows.innerHTML = currentAreas().map((area) => `<tr><th>${area.label}</th><td>-</td><td>-</td></tr>`).join("");
     }
     if (els.printScale) renderScoreScale(els.printScale, { score: 700, showAccuracy: false });
     if (els.printScaleMessage) els.printScaleMessage.textContent = "-";
@@ -1613,18 +1627,26 @@ function renderPrintReport(context) {
   els.printStudentCareer.textContent = student.career;
   els.printStudentEvent.textContent = `${student.event} | ${student.year}`;
   els.printGlobalScore.textContent = formatScore(student.scores.global);
+  if (els.printAccuracyScore) els.printAccuracyScore.textContent = formatPercentScore(studentAccuracyPercent(student), 1);
   els.printCutoffScore.textContent = cutoff ? formatScore(cutoff.cutoff) : "Sin corte";
   els.printCutoffDelta.textContent = cutoff ? `${delta >= 0 ? "+" : ""}${formatScore(delta)}` : "-";
-  els.printEventAverage.textContent = formatScore(eventAvg);
   els.printCutoffMessage.textContent = els.cutoffMessage.textContent;
   const printScale = els.printScale ? renderScoreScale(els.printScale, { score: student.scores.global, showAccuracy: true }) : null;
   if (els.printScaleMessage && printScale) {
     els.printScaleMessage.textContent = `${formatPercentScore(printScale.accuracyPercentage, 1)} de aciertos estimados en escala 0-100. Una preparacion guiada ayuda a convertir este diagnostico en avance medible antes del examen real.`;
   }
   if (els.printAreaRows) {
-    els.printAreaRows.innerHTML = currentAreas().map((area) => `
-      <tr><th>${area.label}</th><td>${formatScore(student.scores[area.code])}</td></tr>
-    `).join("");
+    els.printAreaRows.innerHTML = currentAreas().map((area) => {
+      const correct = studentAreaCorrect(student, area);
+      const total = area.end - area.start + 1;
+      return `
+        <tr>
+          <th>${area.label}</th>
+          <td>${correct === null ? "-" : `${correct}/${total}`}</td>
+          <td>${formatScore(student.scores[area.code])}</td>
+        </tr>
+      `;
+    }).join("");
   }
   els.printAdvisorMessage.textContent = els.advisorMessage.textContent;
   const areaEntries = Object.entries(student.scores).filter(([key]) => key !== "global");
