@@ -297,7 +297,7 @@ function appendCapture_(params, rawBody) {
       payload.group || "",
       payload.version || "1"
     ].concat(numericResponses, [
-      payload.capturedBy || "",
+      payload.campus || payload.capturedBy || "",
       new Date(),
       payload.captureSource || "captura_manual"
     ]);
@@ -453,6 +453,7 @@ function parseCapturePayload_(params, rawBody) {
     event: cleanText_(params.event),
     year: cleanText_(params.year),
     version: cleanText_(params.version || "1"),
+    campus: cleanText_(params.campus),
     capturedBy: cleanText_(params.capturedBy),
     capturedRole: cleanText_(params.capturedRole),
     capturedAt: cleanText_(params.capturedAt),
@@ -469,6 +470,7 @@ function validateCapturePayload_(payload, config) {
   payload.event = cleanText_(payload.event);
   payload.year = cleanText_(payload.year || "2025");
   payload.version = cleanText_(payload.version || "1");
+  payload.campus = cleanText_(payload.campus || payload.capturedBy || "Sin campus");
   payload.capturedBy = cleanText_(payload.capturedBy || "Sin identificar");
   payload.capturedRole = cleanText_(payload.capturedRole);
   payload.captureSource = cleanText_(payload.captureSource || payload.source || "captura_manual");
@@ -605,6 +607,7 @@ function buildPayload_(params) {
         grade: cleanText_(row[6]),
         group: cleanText_(row[7]),
         version: String(row[8] || "1"),
+        campus: cleanText_(row[9 + config.questionCount]),
         capturedBy: cleanText_(row[9 + config.questionCount]),
         capturedAt: row[10 + config.questionCount],
         captureSource: cleanText_(row[11 + config.questionCount]),
@@ -651,7 +654,7 @@ function ensureCaptureHeader_(sheet, config) {
   for (var i = 1; i <= config.questionCount; i++) {
     headers.push("P" + i);
   }
-  headers.push("Capturista", "Fecha captura", "Fuente");
+  headers.push("Campus", "Fecha captura", "Fuente");
   sheet.getRange(3, 1, 1, headers.length).setValues([headers]);
 }
 

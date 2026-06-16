@@ -67,6 +67,8 @@ const roleModules = {
   consulta: ["report", "base"],
 };
 
+const campusOptions = ["Campeche", "Mérida", "Playa del Carmen", "Veracruz"];
+
 function appConfig() {
   return window.SIMULADORES_CONFIG || {};
 }
@@ -93,8 +95,10 @@ function canAccessView(viewName) {
 
 function captureMetadata(source = captureSource) {
   const user = configuredUser();
+  const campus = selectedCampus();
   return {
-    capturedBy: user.name,
+    campus,
+    capturedBy: campus,
     capturedRole: user.role,
     capturedAt: new Date().toISOString(),
     captureSource: source || "captura_manual",
@@ -863,15 +867,31 @@ function applyPermissions() {
 function renderOperatorStatus() {
   const statusMeta = document.querySelector(".status-meta");
   if (!statusMeta) return;
-  let operatorStatus = document.querySelector("#operatorStatus");
-  if (!operatorStatus) {
-    operatorStatus = document.createElement("div");
-    operatorStatus.className = "status-item";
-    operatorStatus.id = "operatorStatus";
-    statusMeta.appendChild(operatorStatus);
+  let campusStatus = document.querySelector("#campusStatus");
+  if (!campusStatus) {
+    campusStatus = document.createElement("label");
+    campusStatus.className = "status-item campus-status";
+    campusStatus.id = "campusStatus";
+    statusMeta.appendChild(campusStatus);
   }
-  const user = configuredUser();
-  operatorStatus.innerHTML = `<span>Operador</span><strong>${escapeHtml(user.name)}</strong>`;
+  const configuredCampus = appConfig().campus || "Veracruz";
+  campusStatus.innerHTML = `
+    <span>Campus</span>
+    <select id="campusSelect" aria-label="Campus">
+      ${campusOptions.map((campus) => `<option value="${escapeHtml(campus)}">${escapeHtml(campus)}</option>`).join("")}
+    </select>
+  `;
+  const campusSelect = document.querySelector("#campusSelect");
+  if (campusSelect) {
+    campusSelect.value = campusOptions.includes(configuredCampus) ? configuredCampus : "Veracruz";
+  }
+}
+
+function selectedCampus() {
+  const campusSelect = document.querySelector("#campusSelect");
+  const configuredCampus = appConfig().campus || "Veracruz";
+  const campus = campusSelect?.value || configuredCampus;
+  return campusOptions.includes(campus) ? campus : "Veracruz";
 }
 
 function renderOptions() {

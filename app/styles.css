@@ -252,16 +252,17 @@ h1 {
 }
 
 .status-row.secondary {
-  grid-template-columns: minmax(340px, 1fr) auto auto;
+  grid-template-columns: minmax(220px, 300px) minmax(440px, 1fr) auto;
   padding-top: 14px;
   border-top: 1px solid #e4e8f2;
+  align-items: center;
 }
 
 .status-meta {
   display: grid;
-  grid-template-columns: repeat(2, minmax(120px, 1fr));
+  grid-template-columns: repeat(3, minmax(120px, 1fr));
   gap: 0;
-  min-width: 270px;
+  min-width: 440px;
 }
 
 .field,
@@ -287,6 +288,25 @@ h1 {
 }
 
 .status-item strong {
+  color: var(--ink);
+  font-size: 15px;
+  line-height: 1.25;
+}
+
+.event-field {
+  max-width: 300px;
+}
+
+.event-field .inline-control {
+  grid-template-columns: minmax(0, 1fr) 82px;
+}
+
+.event-field input {
+  font-size: 13px;
+}
+
+.campus-status select {
+  min-height: 28px;
   color: var(--ink);
   font-size: 15px;
   line-height: 1.25;
@@ -382,6 +402,10 @@ button:disabled {
   align-items: end;
   justify-content: space-between;
   margin-top: 24px;
+}
+
+.capture-heading {
+  margin-bottom: 22px;
 }
 
 .section-heading h2,
@@ -942,6 +966,7 @@ button:disabled {
 .capture-form {
   display: grid;
   gap: 16px;
+  padding-top: 20px;
 }
 
 .capture-details {
@@ -1871,7 +1896,7 @@ button:disabled {
   }
 
   .status-meta {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     min-width: 0;
   }
 
@@ -1947,6 +1972,10 @@ button:disabled {
   .actions {
     display: grid;
     grid-template-columns: 1fr;
+  }
+
+  .status-meta .status-item {
+    padding-right: 0;
   }
 
   .event-summary {
