@@ -51,11 +51,55 @@ const sampleStudents = [
 
 let students = sampleStudents;
 let lastSavedStudentId = "";
+let lastSavedCapture = null;
 let lastCaptureEvent = "";
+let baseDuplicateCount = 0;
 let detectedResponses = [];
 let batchRoster = [];
 let batchItems = [];
 let customEvents = [];
+let captureSource = "captura_manual";
+
+const roleModules = {
+  administrador: ["report", "capture", "batch", "photo", "base"],
+  admin: ["report", "capture", "batch", "photo", "base"],
+  capturista: ["report", "capture"],
+  consulta: ["report", "base"],
+};
+
+function appConfig() {
+  return window.SIMULADORES_CONFIG || {};
+}
+
+function configuredUser() {
+  const user = appConfig().user || {};
+  return {
+    name: String(user.name || "Sin identificar").trim() || "Sin identificar",
+    role: String(user.role || "administrador").trim().toLowerCase() || "administrador",
+  };
+}
+
+function allowedModules() {
+  const configured = appConfig().permissions?.modules;
+  const modules = Array.isArray(configured) && configured.length
+    ? configured
+    : roleModules[configuredUser().role] || roleModules.administrador;
+  return new Set(modules);
+}
+
+function canAccessView(viewName) {
+  return allowedModules().has(viewName);
+}
+
+function captureMetadata(source = captureSource) {
+  const user = configuredUser();
+  return {
+    capturedBy: user.name,
+    capturedRole: user.role,
+    capturedAt: new Date().toISOString(),
+    captureSource: source || "captura_manual",
+  };
+}
 
 const examProfiles = {
   exani2: {
@@ -223,6 +267,7 @@ const careerAliases = {
   "ingenieria en energias renovables": "ing. en energias renovables",
   "ingenieria fisica": "ing. fisica",
   "ingenieria industrial logistica": "ing. industrial logistica",
+  "ingenieria en mecatronica": "ing. en mecatronica",
   "ingenieria mecatronica": "ing. en mecatronica",
   "ingenieria quimica industrial": "ing. quimica industrial",
 };
@@ -246,10 +291,12 @@ function normalizeCareer(value) {
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
-  return careerAliases[cleaned] || cleaned;
+  const alias = careerAliases[cleaned];
+  return alias ? normalizeText(alias) : cleaned;
 }
 
 const cutoffs = Object.fromEntries(uady2025.map((item) => [normalizeCareer(item.career), item]));
+const uadyCareerOptions = uady2025.map((item) => item.career);
 
 const exaniOneBenchmarks = {
   general: {
@@ -328,7 +375,7 @@ function areaElementId(area, suffix) {
 }
 
 function currentCareerOptions() {
-  return currentExamId === "exani1" ? exaniOneCareers : sheetCareers;
+  return currentExamId === "exani1" ? exaniOneCareers : uadyCareerOptions;
 }
 
 function currentAreaLabel(code) {
@@ -468,15 +515,39 @@ const els = {
   capturePmProgress: document.querySelector("#capturePmProgress"),
   saveMessage: document.querySelector("#saveMessage"),
   baseStatus: document.querySelector("#baseStatus"),
+  baseEventSelect: document.querySelector("#baseEventSelect"),
+  basePrintButton: document.querySelector("#basePrintButton"),
+  baseStudentCount: document.querySelector("#baseStudentCount"),
+  baseSelectedEvent: document.querySelector("#baseSelectedEvent"),
+  baseAverage: document.querySelector("#baseAverage"),
+  baseAverageMeta: document.querySelector("#baseAverageMeta"),
+  baseAboveCutoff: document.querySelector("#baseAboveCutoff"),
+  baseAboveCutoffMeta: document.querySelector("#baseAboveCutoffMeta"),
+  basePriorityCount: document.querySelector("#basePriorityCount"),
+  basePriorityMeta: document.querySelector("#basePriorityMeta"),
+  baseExamBadge: document.querySelector("#baseExamBadge"),
+  baseExecutiveSummary: document.querySelector("#baseExecutiveSummary"),
+  baseHighlightStrip: document.querySelector("#baseHighlightStrip"),
+  baseDistribution: document.querySelector("#baseDistribution"),
+  baseAreaBars: document.querySelector("#baseAreaBars"),
+  baseCareerRows: document.querySelector("#baseCareerRows"),
+  baseGroupRows: document.querySelector("#baseGroupRows"),
+  baseSchoolRecommendations: document.querySelector("#baseSchoolRecommendations"),
+  baseStudentRows: document.querySelector("#baseStudentRows"),
+  baseStudentMeta: document.querySelector("#baseStudentMeta"),
   eventAverage: document.querySelector("#eventAverage"),
   eventMeta: document.querySelector("#eventMeta"),
   studentName: document.querySelector("#studentName"),
   studentMeta: document.querySelector("#studentMeta"),
   globalScore: document.querySelector("#globalScore"),
+  accuracyScore: document.querySelector("#accuracyScore"),
   cutoffScore: document.querySelector("#cutoffScore"),
   cutoffDelta: document.querySelector("#cutoffDelta"),
   cutoffMeter: document.querySelector("#cutoffMeter"),
   cutoffMessage: document.querySelector("#cutoffMessage"),
+  scaleStatusBadge: document.querySelector("#scaleStatusBadge"),
+  scoreScale: document.querySelector("#scoreScale"),
+  scaleSummary: document.querySelector("#scaleSummary"),
   studentBar: document.querySelector("#studentBar"),
   eventBar: document.querySelector("#eventBar"),
   historyBar: document.querySelector("#historyBar"),
@@ -507,6 +578,8 @@ const els = {
   printCutoffDelta: document.querySelector("#printCutoffDelta"),
   printEventAverage: document.querySelector("#printEventAverage"),
   printCutoffMessage: document.querySelector("#printCutoffMessage"),
+  printScale: document.querySelector("#printScale"),
+  printScaleMessage: document.querySelector("#printScaleMessage"),
   printRiScore: document.querySelector("#printRiScore"),
   printClScore: document.querySelector("#printClScore"),
   printPmScore: document.querySelector("#printPmScore"),
@@ -524,6 +597,82 @@ function average(values) {
 
 function formatScore(value) {
   return Number.isFinite(value) ? value.toLocaleString("es-MX") : "-";
+}
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function cenevalToPercent(score) {
+  return Number.isFinite(score) ? clamp((score - 700) / 6, 0, 100) : 0;
+}
+
+function formatPercentScore(value, digits = 0) {
+  if (!Number.isFinite(value)) return "-";
+  const fixed = value.toFixed(digits);
+  return `${fixed.replace(/\.0+$/, "")}%`;
+}
+
+function studentAccuracyPercent(student) {
+  if (Array.isArray(student.responses) && student.responses.length === currentQuestionCount() && answerKey.length === currentQuestionCount()) {
+    const correct = student.responses.reduce((sum, response, index) => sum + (response && response === answerKey[index] ? 1 : 0), 0);
+    return (correct / currentQuestionCount()) * 100;
+  }
+  return cenevalToPercent(student.scores.global);
+}
+
+function scoreScaleValue(score, minScore = 700, maxScore = 1300) {
+  const safeScore = Number.isFinite(score) ? score : minScore;
+  const clampedScore = clamp(safeScore, minScore, maxScore);
+  const positionPercentage = ((clampedScore - minScore) / (maxScore - minScore)) * 100;
+  const accuracyPercentage = ((clampedScore - minScore) / (maxScore - minScore)) * 100;
+  return { clampedScore, positionPercentage, accuracyPercentage };
+}
+
+function renderScoreScale(target, { score, minScore = 700, maxScore = 1300, showAccuracy = true } = {}) {
+  if (!target) return null;
+  const { clampedScore, positionPercentage, accuracyPercentage } = scoreScaleValue(score, minScore, maxScore);
+  const majorScores = [];
+  for (let value = minScore; value <= maxScore; value += 100) majorScores.push(value);
+
+  const secondaryTicks = [];
+  for (let value = minScore + 20; value < maxScore; value += 20) {
+    if ((value - minScore) % 100 === 0) continue;
+    secondaryTicks.push(value);
+  }
+
+  const pctForScore = (value) => ((value - minScore) / (maxScore - minScore)) * 100;
+  const percentLabel = (value) => formatPercentScore(pctForScore(value), 2);
+  const statusClass = clampedScore >= 1150 ? "green" : clampedScore >= 1000 ? "yellow" : "red";
+
+  target.innerHTML = `
+    <div class="scale-label-row scale-percent-labels">
+      ${majorScores.map((value) => `<span style="left:${pctForScore(value)}%">${percentLabel(value)}</span>`).join("")}
+    </div>
+    <div class="scale-track ${statusClass}">
+      <span class="scale-segment scale-red" style="left:0%;width:${pctForScore(1000)}%"></span>
+      <span class="scale-segment scale-yellow" style="left:${pctForScore(1000)}%;width:${pctForScore(1150) - pctForScore(1000)}%"></span>
+      <span class="scale-segment scale-green" style="left:${pctForScore(1150)}%;width:${100 - pctForScore(1150)}%"></span>
+      ${secondaryTicks.map((value) => `<i class="scale-tick minor" style="left:${pctForScore(value)}%"></i>`).join("")}
+      ${majorScores.map((value) => `<i class="scale-tick major" style="left:${pctForScore(value)}%"></i>`).join("")}
+      <strong class="scale-marker" style="left:${positionPercentage}%">
+        <b>${formatScore(score)}</b>
+        ${showAccuracy ? `<small>${formatPercentScore(accuracyPercentage, 1)}</small>` : ""}
+      </strong>
+    </div>
+    <div class="scale-label-row scale-score-labels">
+      ${majorScores.map((value) => `<span style="left:${pctForScore(value)}%">${formatScore(value)}</span>`).join("")}
+    </div>
+  `;
+
+  return { clampedScore, positionPercentage, accuracyPercentage };
+}
+
+function scoreLevelFromPercent(percent) {
+  if (percent > 85) return { key: "high", label: "Alto", note: "Alto rendimiento" };
+  if (percent >= 70) return { key: "competitive", label: "Competitivo", note: "Buen punto de partida" };
+  if (percent >= 60) return { key: "base", label: "Base", note: "Requiere practica dirigida" };
+  return { key: "priority", label: "Prioridad", note: "Necesita intervencion pronta" };
 }
 
 function escapeHtml(value) {
@@ -577,11 +726,15 @@ function normalizeStudent(raw) {
   return {
     id: raw.id,
     exam: raw.exam || raw.examId || currentExamId,
+    sourceRow: Number(raw.sourceRow) || 0,
     name: raw.name,
     career: raw.career || "Sin carrera",
     event: eventInfo.event,
     year: eventInfo.year,
+    grade: raw.grade || "",
+    group: raw.group || "",
     scores,
+    responses: Array.isArray(raw.responses) ? raw.responses : [],
   };
 }
 
@@ -674,11 +827,51 @@ function applyStudentPayload(payload) {
 }
 
 function setActiveView(viewName) {
+  if (!canAccessView(viewName)) {
+    viewName = [...allowedModules()][0] || "capture";
+  }
   els.tabs.forEach((tab) => tab.classList.toggle("active", tab.dataset.tab === viewName));
   els.views.forEach((view) => view.classList.toggle("active", view.dataset.view === viewName));
   if (viewName === "capture") {
     setTimeout(() => focusQuestion(1), 0);
   }
+}
+
+function applyPermissions() {
+  const modules = allowedModules();
+  els.tabs.forEach((tab) => {
+    const allowed = modules.has(tab.dataset.tab);
+    tab.hidden = !allowed;
+    tab.disabled = !allowed;
+  });
+  els.views.forEach((view) => {
+    const allowed = modules.has(view.dataset.view);
+    view.hidden = !allowed;
+    if (!allowed) view.classList.remove("active");
+  });
+  const startView = appConfig().startView;
+  if (startView && modules.has(startView)) {
+    setActiveView(startView);
+    return;
+  }
+  const activeView = document.querySelector(".view.active")?.dataset.view;
+  if (!activeView || !modules.has(activeView)) {
+    setActiveView([...modules][0] || "capture");
+  }
+}
+
+function renderOperatorStatus() {
+  const statusMeta = document.querySelector(".status-meta");
+  if (!statusMeta) return;
+  let operatorStatus = document.querySelector("#operatorStatus");
+  if (!operatorStatus) {
+    operatorStatus = document.createElement("div");
+    operatorStatus.className = "status-item";
+    operatorStatus.id = "operatorStatus";
+    statusMeta.appendChild(operatorStatus);
+  }
+  const user = configuredUser();
+  operatorStatus.innerHTML = `<span>Operador</span><strong>${escapeHtml(user.name)}</strong>`;
 }
 
 function renderOptions() {
@@ -689,6 +882,7 @@ function renderOptions() {
     .join("");
   els.eventFilter.value = events.includes(currentEvent) ? currentEvent : "all";
   renderCaptureLists();
+  renderBaseOptions();
   renderStudentOptions();
 }
 
@@ -796,8 +990,9 @@ function renderCaptureLists() {
   els.captureYear.value = "2025";
 }
 
-function renderStudentOptions() {
-  const selectedStudent = els.studentSelect.value;
+function renderStudentOptions(preferredStudentId = "") {
+  const preferred = typeof preferredStudentId === "string" ? preferredStudentId : "";
+  const selectedStudent = preferred || els.studentSelect.value;
   const filtered = getFilteredStudents();
   els.studentSelect.innerHTML = filtered
     .map((student) => `<option value="${student.id}">${student.name}</option>`)
@@ -814,6 +1009,347 @@ function renderStudentOptions() {
   }
 }
 
+function baseEvents() {
+  return [...new Set(students.map((student) => student.event).filter(Boolean))].sort();
+}
+
+function renderBaseOptions() {
+  if (!els.baseEventSelect) return;
+  const current = els.baseEventSelect.value;
+  const events = baseEvents();
+  els.baseEventSelect.innerHTML = events.length
+    ? events.map((event) => `<option value="${escapeHtml(event)}">${escapeHtml(event)}</option>`).join("")
+    : `<option value="">Sin eventos capturados</option>`;
+
+  if (events.includes(current)) {
+    els.baseEventSelect.value = current;
+  } else if (els.eventFilter.value && els.eventFilter.value !== "all" && events.includes(els.eventFilter.value)) {
+    els.baseEventSelect.value = els.eventFilter.value;
+  } else {
+    els.baseEventSelect.value = events[0] || "";
+  }
+
+  renderBaseReport();
+}
+
+function getBaseStudents() {
+  const eventName = els.baseEventSelect?.value || "";
+  if (!eventName) return [];
+  const eventStudents = students.filter((student) => student.event === eventName);
+  const unique = new Map();
+
+  eventStudents.forEach((student) => {
+    const scoreKey = [
+      student.scores.global,
+      ...currentAreas().map((area) => student.scores[area.code] || 0),
+    ].join("-");
+    const key = [
+      normalizeText(student.name),
+      normalizeText(student.career),
+      normalizeText(student.event),
+      normalizeText(student.year),
+      scoreKey,
+    ].join("|");
+    const previous = unique.get(key);
+    if (!previous || student.sourceRow >= previous.sourceRow) {
+      unique.set(key, student);
+    }
+  });
+
+  baseDuplicateCount = eventStudents.length - unique.size;
+  return [...unique.values()];
+}
+
+function baseStudentCutoff(student) {
+  const cutoff = getCutoffForStudent(student);
+  return {
+    cutoff,
+    delta: cutoff ? student.scores.global - cutoff.cutoff : null,
+  };
+}
+
+function basePriorityArea(student) {
+  const entries = currentAreas().map((area) => ({
+    code: area.code,
+    label: area.label,
+    score: student.scores[area.code] || 0,
+  }));
+  return entries.reduce((lowest, item) => (item.score < lowest.score ? item : lowest), entries[0]);
+}
+
+function baseLevelForStudent(student) {
+  return scoreLevelFromPercent(studentAccuracyPercent(student));
+}
+
+function baseActionForStudent(student, delta, priorityArea) {
+  if (delta !== null && delta >= 0) {
+    return `Sostener ventaja y reforzar ${priorityArea.label}.`;
+  }
+  if (delta !== null && delta < -60) {
+    return `Plan intensivo en ${priorityArea.label} y seguimiento semanal.`;
+  }
+  if (studentAccuracyPercent(student) < 60) {
+    return `Regularizacion base en ${priorityArea.label}.`;
+  }
+  return `Practica focalizada en ${priorityArea.label}.`;
+}
+
+function renderBaseEmpty(message = "Selecciona un evento con alumnos capturados.") {
+  if (!els.baseStudentCount) return;
+  els.baseStudentCount.textContent = "0";
+  els.baseSelectedEvent.textContent = "Sin evento";
+  els.baseAverage.textContent = "-";
+  els.baseAverageMeta.textContent = "Escala de 0 a 100";
+  els.baseAboveCutoff.textContent = "-";
+  els.baseAboveCutoffMeta.textContent = "Alumnos desde 70%";
+  els.basePriorityCount.textContent = "-";
+  els.basePriorityMeta.textContent = "Sin alumnos";
+  els.baseExamBadge.textContent = currentProfile().shortLabel;
+  els.baseExecutiveSummary.textContent = message;
+  els.baseHighlightStrip.innerHTML = "";
+  els.baseDistribution.innerHTML = "";
+  els.baseAreaBars.innerHTML = "";
+  els.baseCareerRows.innerHTML = `<tr><td colspan="4">Sin datos para mostrar.</td></tr>`;
+  els.baseGroupRows.innerHTML = `<tr><td colspan="4">Sin grupos capturados.</td></tr>`;
+  els.baseSchoolRecommendations.innerHTML = "";
+  els.baseStudentRows.innerHTML = `<tr><td colspan="6">Sin alumnos capturados para este evento.</td></tr>`;
+  els.baseStudentMeta.textContent = "0 registros";
+}
+
+function renderBaseReport() {
+  if (!els.baseEventSelect) return;
+  const eventName = els.baseEventSelect.value;
+  const eventStudents = getBaseStudents();
+  if (!eventName || !eventStudents.length) {
+    renderBaseEmpty();
+    return;
+  }
+
+  const avgAccuracy = average(eventStudents.map(studentAccuracyPercent));
+  const withCutoff = eventStudents
+    .map((student) => ({ student, ...baseStudentCutoff(student) }))
+    .filter((item) => item.cutoff);
+  const competitiveOrHigh = eventStudents.filter((student) => studentAccuracyPercent(student) >= 70);
+  const competitiveHighPct = (competitiveOrHigh.length / eventStudents.length) * 100;
+  const priorityStudents = eventStudents.filter((student) => {
+    return studentAccuracyPercent(student) < 60;
+  });
+  const areaAverages = currentAreas().map((area) => ({
+    ...area,
+    average: average(eventStudents.map((student) => cenevalToPercent(student.scores[area.code]))),
+  }));
+  const strongest = areaAverages.reduce((best, area) => (area.average > best.average ? area : best), areaAverages[0]);
+  const weakest = areaAverages.reduce((low, area) => (area.average < low.average ? area : low), areaAverages[0]);
+
+  els.baseStudentCount.textContent = String(eventStudents.length);
+  els.baseSelectedEvent.textContent = eventName;
+  els.baseAverage.textContent = formatPercentScore(avgAccuracy);
+  els.baseAverageMeta.textContent = `${eventStudents.length} alumno${eventStudents.length === 1 ? "" : "s"} evaluado${eventStudents.length === 1 ? "" : "s"}`;
+  els.baseAboveCutoff.textContent = formatPercentScore((competitiveOrHigh.length / eventStudents.length) * 100);
+  els.baseAboveCutoffMeta.textContent = `${competitiveOrHigh.length} de ${eventStudents.length} desde 70%`;
+  els.basePriorityCount.textContent = String(priorityStudents.length);
+  els.basePriorityMeta.textContent = `${formatPercentScore((priorityStudents.length / eventStudents.length) * 100)} del grupo`;
+  els.baseExamBadge.textContent = currentProfile().shortLabel;
+  els.baseStatus.textContent = baseDuplicateCount
+    ? `Analisis generado para ${eventName}. Se omitieron ${baseDuplicateCount} duplicado${baseDuplicateCount === 1 ? "" : "s"} exacto${baseDuplicateCount === 1 ? "" : "s"} del resumen.`
+    : `Analisis generado para ${eventName}.`;
+  els.baseExecutiveSummary.textContent =
+    `El evento ${eventName} concentra ${eventStudents.length} alumnos con promedio de aciertos de ${formatPercentScore(avgAccuracy)}. ` +
+    `La fortaleza academica del grupo es ${strongest.label} (${formatPercentScore(strongest.average)}) y el foco prioritario es ${weakest.label} (${formatPercentScore(weakest.average)}). ` +
+    (withCutoff.length
+      ? `${competitiveOrHigh.length} alumnos estan en nivel competitivo o alto; ${priorityStudents.length} requieren seguimiento academico cercano.`
+      : `${priorityStudents.length} alumnos requieren seguimiento academico cercano segun porcentaje de aciertos y desempeno por area.`);
+
+  els.baseHighlightStrip.innerHTML = [
+    { label: "Fortaleza", value: strongest.label, tone: "ok" },
+    { label: "Foco", value: weakest.label, tone: "warn" },
+    { label: "Seguimiento", value: `${priorityStudents.length} alumnos`, tone: priorityStudents.length ? "risk" : "ok" },
+  ].map((item) => `
+    <div class="base-highlight ${item.tone}">
+      <span>${item.label}</span>
+      <strong>${escapeHtml(item.value)}</strong>
+    </div>
+  `).join("");
+
+  renderBaseDistribution(eventStudents);
+  renderBaseAreaBars(areaAverages, avgAccuracy);
+  renderBaseCareerRows(eventStudents);
+  renderBaseGroupRows(eventStudents);
+  renderBaseRecommendations(eventStudents, weakest, priorityStudents, competitiveHighPct);
+  renderBaseStudentRows(eventStudents, avgAccuracy);
+}
+
+function renderBaseDistribution(eventStudents) {
+  const bands = [
+    { key: "high", label: "Alto", min: 85 },
+    { key: "competitive", label: "Competitivo", min: 70 },
+    { key: "base", label: "Base", min: 60 },
+    { key: "priority", label: "Prioridad", min: 0 },
+  ].map((band) => ({ ...band, count: 0 }));
+
+  eventStudents.forEach((student) => {
+    const level = baseLevelForStudent(student);
+    const band = bands.find((item) => item.key === level.key);
+    if (band) band.count++;
+  });
+
+  els.baseDistribution.innerHTML = bands.map((band) => {
+    const pct = eventStudents.length ? (band.count / eventStudents.length) * 100 : 0;
+    return `
+      <div class="base-band ${band.key}">
+        <div>
+          <strong>${band.label}</strong>
+          <span>${band.count} alumno${band.count === 1 ? "" : "s"}</span>
+        </div>
+        <div class="base-band-track"><span style="width:${Math.max(4, pct)}%"></span></div>
+        <em>${formatPercentScore(pct)}</em>
+      </div>
+    `;
+  }).join("");
+}
+
+function renderBaseAreaBars(areaAverages, avgAccuracy) {
+  els.baseAreaBars.innerHTML = areaAverages.map((area) => {
+    const delta = area.average - avgAccuracy;
+    const pct = Math.max(4, Math.min(100, area.average));
+    return `
+      <div class="base-area-row">
+        <div>
+          <strong>${escapeHtml(area.label)}</strong>
+          <span>${delta >= 0 ? "+" : ""}${formatPercentScore(delta)} vs promedio del evento</span>
+        </div>
+        <div class="base-area-track"><span style="width:${pct}%"></span></div>
+        <em>${formatPercentScore(area.average)}</em>
+      </div>
+    `;
+  }).join("");
+}
+
+function renderBaseCareerRows(eventStudents) {
+  const grouped = new Map();
+  eventStudents.forEach((student) => {
+    const key = student.career || "Sin carrera";
+    if (!grouped.has(key)) grouped.set(key, []);
+    grouped.get(key).push(student);
+  });
+
+  const rows = [...grouped.entries()]
+    .map(([career, items]) => {
+      const avg = average(items.map(studentAccuracyPercent));
+      const deltas = items
+        .map((student) => baseStudentCutoff(student).delta)
+        .filter((delta) => delta !== null);
+      return { career, count: items.length, avg, gap: deltas.length ? average(deltas) : null };
+    })
+    .sort((a, b) => b.count - a.count || b.avg - a.avg)
+    .slice(0, 10);
+
+  els.baseCareerRows.innerHTML = rows.length
+    ? rows.map((row) => `
+      <tr>
+        <td>${escapeHtml(row.career)}</td>
+        <td>${row.count}</td>
+        <td>${formatPercentScore(row.avg)}</td>
+        <td class="${row.gap === null ? "" : row.gap >= 0 ? "positive-cell" : "negative-cell"}">${row.gap === null ? "Sin corte" : `${row.gap >= 0 ? "+" : ""}${formatScore(row.gap)}`}</td>
+      </tr>
+    `).join("")
+    : `<tr><td colspan="4">Sin carreras capturadas.</td></tr>`;
+}
+
+function renderBaseGroupRows(eventStudents) {
+  const grouped = new Map();
+  eventStudents.forEach((student) => {
+    const key = [student.grade, student.group].filter(Boolean).join(" ") || "Sin grupo capturado";
+    if (!grouped.has(key)) grouped.set(key, []);
+    grouped.get(key).push(student);
+  });
+
+  const rows = [...grouped.entries()]
+    .map(([group, items]) => {
+      const avg = average(items.map(studentAccuracyPercent));
+      const priority = items.filter((student) => {
+        return studentAccuracyPercent(student) < 60;
+      }).length;
+      return { group, count: items.length, avg, priority };
+    })
+    .sort((a, b) => b.count - a.count || a.avg - b.avg);
+
+  els.baseGroupRows.innerHTML = rows.length
+    ? rows.map((row) => `
+      <tr>
+        <td>${escapeHtml(row.group)}</td>
+        <td>${row.count}</td>
+        <td>${formatPercentScore(row.avg)}</td>
+        <td class="${row.priority ? "negative-cell" : "positive-cell"}">${row.priority} alumno${row.priority === 1 ? "" : "s"}</td>
+      </tr>
+    `).join("")
+    : `<tr><td colspan="4">Sin grupos capturados.</td></tr>`;
+}
+
+function renderBaseRecommendations(eventStudents, weakestArea, priorityStudents, competitiveHighPct) {
+  const priorityRate = eventStudents.length ? (priorityStudents.length / eventStudents.length) * 100 : 0;
+  const recommendations = [
+    {
+      title: "Intervencion academica",
+      text: priorityStudents.length
+        ? `Abrir un bloque de seguimiento para ${priorityStudents.length} alumnos, iniciando por ${weakestArea.label}.`
+        : `Mantener seguimiento preventivo; no hay alumnos en prioridad critica con la regla actual.`,
+    },
+    {
+      title: "Trabajo por area",
+      text: `Usar ${weakestArea.label} como foco comun del siguiente taller o retroalimentacion grupal.`,
+    },
+    {
+      title: "Comunicacion con familias",
+      text: priorityRate >= 25
+        ? `Compartir reporte individual y plan de mejora con familias de alumnos en prioridad.`
+        : `Entregar reportes individuales destacando fortalezas y metas por carrera.`,
+    },
+    {
+      title: "Indicador comercial",
+      text: `${formatPercentScore(competitiveHighPct)} de alumnos esta en nivel competitivo o alto; esto permite presentar avance academico y casos de oportunidad.`,
+    },
+  ];
+
+  els.baseSchoolRecommendations.innerHTML = recommendations.map((item) => `
+    <article>
+      <strong>${escapeHtml(item.title)}</strong>
+      <p>${escapeHtml(item.text)}</p>
+    </article>
+  `).join("");
+}
+
+function renderBaseStudentRows(eventStudents, avgAccuracy) {
+  const rows = [...eventStudents]
+    .sort((a, b) => studentAccuracyPercent(b) - studentAccuracyPercent(a))
+    .map((student) => {
+      const { cutoff, delta } = baseStudentCutoff(student);
+      const priorityArea = basePriorityArea(student);
+      const level = baseLevelForStudent(student);
+      return { student, cutoff, delta, priorityArea, level };
+    });
+
+  els.baseStudentMeta.textContent = `${rows.length} registro${rows.length === 1 ? "" : "s"}`;
+  els.baseStudentRows.innerHTML = rows.map(({ student, cutoff, delta, priorityArea, level }) => {
+    const accuracy = studentAccuracyPercent(student);
+    const accuracyDelta = accuracy - avgAccuracy;
+    const priorityAreaPercent = cenevalToPercent(priorityArea.score);
+    return `
+      <tr>
+        <td>
+          <strong>${escapeHtml(student.name)}</strong>
+          <span>${escapeHtml([student.grade, student.group].filter(Boolean).join(" ") || level.note)}</span>
+        </td>
+        <td>${escapeHtml(student.career)}</td>
+        <td><b>${formatPercentScore(accuracy, 1)}</b><small>${accuracyDelta >= 0 ? "+" : ""}${formatPercentScore(accuracyDelta, 1)} vs grupo</small></td>
+        <td>${escapeHtml(priorityArea.label)}<small>${formatPercentScore(priorityAreaPercent, 1)}</small></td>
+        <td class="${delta === null ? "" : delta >= 0 ? "positive-cell" : "negative-cell"}">${cutoff ? `${delta >= 0 ? "+" : ""}${formatScore(delta)}` : "Sin corte"}</td>
+        <td>${escapeHtml(baseActionForStudent(student, delta, priorityArea))}</td>
+      </tr>
+    `;
+  }).join("");
+}
+
 function renderEventSummary() {
   const filtered = getFilteredStudents();
   const eventAvg = average(filtered.map((student) => student.scores.global));
@@ -828,15 +1364,18 @@ function renderEmptyReport() {
   els.studentName.textContent = "Sin resultados";
   els.studentMeta.textContent = "Ajusta la búsqueda o selecciona otro evento.";
   [
-    "globalScore", "cutoffScore", "cutoffDelta", "studentBarValue", "eventBarValue", "historyBarValue",
+    "globalScore", "accuracyScore", "cutoffScore", "cutoffDelta", "studentBarValue", "eventBarValue", "historyBarValue",
     "riScore", "clScore", "pmScore",
   ].forEach((key) => {
-    els[key].textContent = "-";
+    if (els[key]) els[key].textContent = "-";
   });
   [els.studentBar, els.eventBar, els.historyBar, els.cutoffMeter].forEach((bar) => {
     bar.style.width = "0%";
   });
   els.cutoffMessage.textContent = "No hay alumnos que coincidan con el filtro actual.";
+  if (els.scoreScale) renderScoreScale(els.scoreScale, { score: 700, showAccuracy: false });
+  if (els.scaleStatusBadge) els.scaleStatusBadge.textContent = "-";
+  if (els.scaleSummary) els.scaleSummary.textContent = "Selecciona un alumno para ver su posicion en ambas escalas.";
   els.riMessage.textContent = "-";
   els.clMessage.textContent = "-";
   els.pmMessage.textContent = "-";
@@ -858,6 +1397,7 @@ function renderReport(studentId) {
   const comparisonGroup = getFilteredStudents();
   const cutoff = getCutoffForStudent(student);
   const delta = cutoff ? student.scores.global - cutoff.cutoff : 0;
+  const isAboveCutoff = Boolean(cutoff && delta >= 0);
   const areaAverages = Object.fromEntries(
     currentAreas().map((area) => [area.code, getAreaAverage(area, comparisonGroup)])
   );
@@ -865,20 +1405,34 @@ function renderReport(studentId) {
   els.studentName.textContent = student.name;
   els.studentMeta.textContent = `${student.career} | ${student.event} | ${student.year}`;
   els.globalScore.textContent = formatScore(student.scores.global);
+  if (els.accuracyScore) {
+    els.accuracyScore.textContent = formatPercentScore(studentAccuracyPercent(student), 1);
+  }
   els.cutoffScore.textContent = cutoff ? formatScore(cutoff.cutoff) : "Sin corte";
   els.cutoffDelta.textContent = cutoff ? `${delta >= 0 ? "+" : ""}${formatScore(delta)}` : "-";
-  els.cutoffDelta.style.color = delta >= 0 ? "var(--green)" : "var(--red)";
+  els.cutoffDelta.style.color = isAboveCutoff ? "var(--green)" : "var(--red)";
+  els.cutoffDelta.closest(".kpi-card")?.classList.toggle("cutoff-positive", isAboveCutoff);
+  els.cutoffDelta.closest(".kpi-card")?.classList.toggle("cutoff-negative", Boolean(cutoff && delta < 0));
+  if (els.cutoffDelta.nextElementSibling) {
+    els.cutoffDelta.nextElementSibling.textContent = isAboveCutoff
+      ? "Arriba del punto de corte"
+      : "Contra carrera elegida";
+  }
   els.cutoffMeter.style.width = cutoff ? `${Math.max(8, Math.min(100, (student.scores.global / cutoff.cutoff) * 100))}%` : "8%";
-  els.cutoffMeter.style.background = delta >= 0 ? "var(--green)" : "var(--red)";
+  els.cutoffMeter.style.background = isAboveCutoff ? "var(--green)" : "var(--red)";
+  els.cutoffMeter.closest(".cutoff-card")?.classList.toggle("above-cutoff", isAboveCutoff);
+  els.cutoffMeter.closest(".cutoff-card")?.classList.toggle("below-cutoff", Boolean(cutoff && delta < 0));
   els.cutoffMessage.textContent = cutoff
     ? delta >= 0
-      ? `El puntaje supera el corte UADY 2025 de ${student.career}. En 2025 ingresaron ${cutoff.admitted} de ${cutoff.applicants} aspirantes (${cutoff.admissionRate}%).`
+      ? `Arriba del corte: +${formatScore(delta)} puntos sobre la referencia UADY 2025 de ${student.career}. En 2025 ingresaron ${cutoff.admitted} de ${cutoff.applicants} aspirantes (${cutoff.admissionRate}%).`
       : `Está a ${Math.abs(delta)} puntos del corte UADY 2025 de ${student.career}. En 2025 ingresaron ${cutoff.admitted} de ${cutoff.applicants} aspirantes (${cutoff.admissionRate}%).`
     : `No encontré un corte UADY 2025 para ${student.career}. Hay que agregar un alias de carrera.`;
 
   if (currentExamId === "exani1") {
     els.cutoffMessage.textContent = cutoffMessageFor(student, cutoff, delta);
   }
+
+  renderDualScale(student);
 
   els.studentBarValue.textContent = formatScore(student.scores.global);
   els.eventBarValue.textContent = formatScore(eventAvg);
@@ -901,10 +1455,36 @@ function renderReport(studentId) {
   const weakest = entries.reduce((low, item) => (item[1] < low[1] ? item : low), entries[0]);
   const eventDelta = student.scores.global - eventAvg;
 
-  els.advisorMessage.textContent =
-    `${student.name.split(" ")[0]} ${eventDelta >= 0 ? "está por arriba" : "está por debajo"} del promedio de su evento por ${Math.abs(eventDelta)} puntos. ` +
-    `Su área más fuerte es ${currentAreaLabel(strongest[0])} (${formatScore(strongest[1])}) y la prioridad de refuerzo es ${currentAreaLabel(weakest[0])} (${formatScore(weakest[1])}).`;
+  els.advisorMessage.textContent = advisorMessageFor(student, eventDelta, cutoff ? delta : null, weakest, strongest);
   renderPrintReport({ student, eventAvg, cutoff, delta });
+}
+
+function renderDualScale(student) {
+  if (!els.scoreScale) return;
+  const score = student.scores.global;
+  const result = renderScoreScale(els.scoreScale, { score, showAccuracy: true });
+  const level = score >= 1150
+    ? { label: "Verde", text: "ya muestra una posicion fuerte, pero un curso de admision ayuda a sostener la ventaja, cerrar huecos finos y llegar con estrategia al examen real." }
+    : score >= 1000
+      ? { label: "Amarillo", text: "hay una base competitiva, pero todavia existe margen claro de crecimiento; con preparacion guiada puede convertir ese avance en una candidatura mas solida." }
+      : { label: "Rojo", text: "este resultado muestra areas que conviene atender pronto; un curso de admision puede ordenar el estudio, reforzar bases y acelerar la mejora antes del siguiente simulador." };
+
+  els.scaleStatusBadge.textContent = level.label;
+  els.scaleSummary.textContent = `${formatPercentScore(result.accuracyPercentage, 1)} de aciertos estimados equivale a un indice CENEVAL de ${formatScore(score)}. ${level.text}`;
+}
+
+function advisorMessageFor(student, eventDelta, cutoffDelta, weakestArea, strongestArea) {
+  const firstName = student.name.split(" ")[0];
+  const eventRead = eventDelta >= 0
+    ? `llega por arriba del promedio del evento, una buena puerta de entrada para reconocer avance`
+    : `esta por debajo del promedio del evento, asi que conviene abrir la conversacion desde oportunidad de mejora`;
+  const cutoffRead = cutoffDelta === null
+    ? "sin referencia de corte disponible para esta carrera"
+    : cutoffDelta >= 0
+      ? `con margen positivo frente al corte; el enfoque comercial debe ser sostener resultado y evitar retrocesos`
+      : `a ${formatScore(Math.abs(cutoffDelta))} puntos del corte; el enfoque comercial debe ser convertir esa brecha en un plan concreto`;
+
+  return `Para tutor/comercial: ${firstName} ${eventRead}. Esta ${cutoffRead}. Recomienda una ruta de preparacion centrada en ${currentAreaLabel(weakestArea[0])}, usando ${currentAreaLabel(strongestArea[0])} como fortaleza para generar confianza y cerrar con una meta medible para el siguiente simulador.`;
 }
 
 function renderPrintReport(context) {
@@ -919,6 +1499,8 @@ function renderPrintReport(context) {
     if (els.printAreaRows) {
       els.printAreaRows.innerHTML = currentAreas().map((area) => `<tr><th>${area.label}</th><td>-</td></tr>`).join("");
     }
+    if (els.printScale) renderScoreScale(els.printScale, { score: 700, showAccuracy: false });
+    if (els.printScaleMessage) els.printScaleMessage.textContent = "-";
     return;
   }
 
@@ -931,6 +1513,10 @@ function renderPrintReport(context) {
   els.printCutoffDelta.textContent = cutoff ? `${delta >= 0 ? "+" : ""}${formatScore(delta)}` : "-";
   els.printEventAverage.textContent = formatScore(eventAvg);
   els.printCutoffMessage.textContent = els.cutoffMessage.textContent;
+  const printScale = els.printScale ? renderScoreScale(els.printScale, { score: student.scores.global, showAccuracy: true }) : null;
+  if (els.printScaleMessage && printScale) {
+    els.printScaleMessage.textContent = `${formatPercentScore(printScale.accuracyPercentage, 1)} de aciertos estimados en escala 0-100. Una preparacion guiada ayuda a convertir este diagnostico en avance medible antes del examen real.`;
+  }
   if (els.printAreaRows) {
     els.printAreaRows.innerHTML = currentAreas().map((area) => `
       <tr><th>${area.label}</th><td>${formatScore(student.scores[area.code])}</td></tr>
@@ -1132,6 +1718,7 @@ function updateCapturePreview() {
 }
 
 function clearCaptureForm() {
+  captureSource = "captura_manual";
   els.captureForm.reset();
   els.answersGrid.querySelectorAll(".answer-item").forEach((item) => item.classList.remove("answered"));
   els.captureYear.value = "2025";
@@ -1212,7 +1799,30 @@ function capturePayload() {
     year: els.captureYear.value.trim(),
     version: els.captureVersion.value.trim(),
     responses: preview.responses,
+    ...captureMetadata(),
   };
+}
+
+function findSavedStudent(capture = lastSavedCapture) {
+  if (!capture) return null;
+  if (capture.id) {
+    const byId = students.find((student) => student.id === capture.id);
+    if (byId) return byId;
+  }
+  if (capture.sourceRow) {
+    const byRow = students.find((student) => student.sourceRow === capture.sourceRow);
+    if (byRow) return byRow;
+  }
+
+  const name = normalizeText(capture.name);
+  const event = normalizeText(capture.event);
+  const year = normalizeText(capture.year);
+  const matches = students.filter((student) => (
+    normalizeText(student.name) === name &&
+    normalizeText(student.event) === event &&
+    normalizeText(student.year) === year
+  ));
+  return matches[matches.length - 1] || null;
 }
 
 function findDuplicateCapture(payload) {
@@ -1235,13 +1845,20 @@ async function appendCapturePayload(payload) {
   return loadPayloadJsonp(url);
 }
 
-function showSavedReport() {
-  if (!lastSavedStudentId) return;
+async function showSavedReport() {
+  let saved = findSavedStudent() || students.find((student) => student.id === lastSavedStudentId);
+  if (!saved) {
+    await loadStudents();
+    renderOptions();
+    saved = findSavedStudent() || students.find((student) => student.id === lastSavedStudentId);
+  }
+  if (!saved) return;
+  lastSavedStudentId = saved.id;
   els.eventFilter.value = "all";
   els.studentSearch.value = "";
-  renderStudentOptions();
-  els.studentSelect.value = lastSavedStudentId;
-  renderReport(lastSavedStudentId);
+  renderStudentOptions(saved.id);
+  els.studentSelect.value = saved.id;
+  renderReport(saved.id);
   setActiveView("report");
 }
 
@@ -1257,6 +1874,7 @@ function newCaptureSameEvent() {
 
 function newBlankCapture() {
   lastSavedStudentId = "";
+  lastSavedCapture = null;
   clearCaptureForm();
   setActiveView("capture");
   els.captureName.focus();
@@ -1281,6 +1899,12 @@ function addCustomEvent() {
   updateCapturePreview();
 }
 
+function printBaseReport() {
+  setActiveView("base");
+  renderBaseReport();
+  window.print();
+}
+
 function matchSheetCareer(value) {
   const normalized = normalizeText(value);
   if (currentExamId === "exani1") {
@@ -1288,7 +1912,8 @@ function matchSheetCareer(value) {
       exaniOneCareers.find((career) => normalizeText(career) === normalized) ||
       value.trim();
   }
-  return sheetCareers.find((career) => normalizeText(career) === normalized) || value.trim();
+  const normalizedCareer = normalizeCareer(value);
+  return uadyCareerOptions.find((career) => normalizeCareer(career) === normalizedCareer) || value.trim();
 }
 
 function parseRosterLine(line) {
@@ -1530,6 +2155,7 @@ async function saveBatch() {
       version: els.batchVersion.value.trim() || "1",
       exam: currentExamId,
       responses: item.responses,
+      ...captureMetadata("lote_fotos"),
     };
 
     els.batchMessage.className = "save-message";
@@ -1907,6 +2533,7 @@ function applyDetectedResponsesToCapture() {
     input.checked = true;
     input.closest(".answer-item")?.classList.add("answered");
   });
+  captureSource = "foto_hoja";
   updateCapturePreview();
 }
 
@@ -1952,13 +2579,20 @@ async function saveCapture(event) {
     els.saveMessage.className = "save-message ok";
     els.saveMessage.textContent = `Guardado en Captura fila ${result.sourceRow}.`;
     lastSavedStudentId = result.id;
+    lastSavedCapture = {
+      id: result.id,
+      sourceRow: Number(result.sourceRow) || 0,
+      name: payload.name,
+      event: payload.event,
+      year: payload.year,
+    };
     lastCaptureEvent = payload.event;
     els.postSaveActions.hidden = false;
 
     await loadStudents();
     renderOptions();
 
-    const saved = students.find((student) => student.id === result.id);
+    const saved = findSavedStudent();
     if (saved) {
       lastSavedStudentId = saved.id;
       els.saveMessage.textContent = `Guardado en Captura fila ${result.sourceRow}. Ya puedes ver el reporte o capturar otro alumno.`;
@@ -1982,6 +2616,8 @@ els.resetButton.addEventListener("click", () => {
   els.studentSearch.value = "";
   renderStudentOptions();
 });
+els.baseEventSelect?.addEventListener("change", renderBaseReport);
+els.basePrintButton?.addEventListener("click", printBaseReport);
 els.addEventButton.addEventListener("click", addCustomEvent);
 els.newEventInput.addEventListener("keydown", (event) => {
   if (event.key !== "Enter") return;
@@ -2023,6 +2659,8 @@ els.answersGrid.addEventListener("change", (event) => {
 });
 
 async function init() {
+  applyPermissions();
+  renderOperatorStatus();
   renderExamControls();
   renderAreaCards();
   renderCaptureAreaSummary();

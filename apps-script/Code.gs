@@ -60,6 +60,58 @@ const SHEET_CAREERS = [
   "Veracruz"
 ];
 
+const UADY_CAREERS = [
+  "Actuaria",
+  "Administracion",
+  "Administracion de tecnologias de la informacion",
+  "Agroecologia",
+  "Antropologia",
+  "Arqueologia",
+  "Arquitectura",
+  "Artes Visuales",
+  "Biologia",
+  "Biologia Marina",
+  "Ciencias de la Computacion",
+  "Cirujano Dentista",
+  "Comercio internacional",
+  "Comunicacion Social",
+  "Contador Publico (Merida)",
+  "Contador Publico (Tizimin)",
+  "Derecho",
+  "Diseno del Habitat",
+  "Economia",
+  "Educacion (Merida)",
+  "Educacion (Tizimin)",
+  "Enfermeria (Merida)",
+  "Enfermeria (Tizimin)",
+  "Ensenanza de las matematicas",
+  "Ensenanza del Idioma ingles",
+  "Historia",
+  "Ing. Civil",
+  "Ing. en Alimentos",
+  "Ing. en Biotecnologia",
+  "Ing. en Computacion",
+  "Ing. en Energias Renovables",
+  "Ing. en Mecatronica",
+  "Ing. Fisica",
+  "Ing. Industrial Logistica",
+  "Ing. Quimica Industrial",
+  "Ing. Software (Merida)",
+  "Ing. Software (Tizimin)",
+  "Literatura Latinoamericana",
+  "Matematicas",
+  "Medico Cirujano",
+  "Medico Veterinario Zootecnista",
+  "Mercadotecnia y Negocios Internacionales",
+  "Nutricion",
+  "Psicologia",
+  "Quimica Aplicada",
+  "Quimico farmaceutico biologo",
+  "Rehabilitacion",
+  "Trabajo Social",
+  "Turismo"
+];
+
 const EXANI_I_CAREERS = [
   "Preparatoria Uno",
   "Preparatoria Dos",
@@ -86,6 +138,37 @@ const CAREER_ALIASES = {
   "medico veterinario zootecnista": "Médico veterinario zootecnista"
 };
 
+Object.assign(CAREER_ALIASES, {
+  "actuaria": "Actuaria",
+  "antropologia": "Antropologia",
+  "antropologia social": "Antropologia",
+  "ing civil": "Ing. Civil",
+  "ingenieria civil": "Ing. Civil",
+  "ing en alimentos": "Ing. en Alimentos",
+  "ingenieria en alimentos": "Ing. en Alimentos",
+  "ing en biotecnologia": "Ing. en Biotecnologia",
+  "ingenieria en biotecnologia": "Ing. en Biotecnologia",
+  "ing en computacion": "Ing. en Computacion",
+  "ingenieria en computacion": "Ing. en Computacion",
+  "ing en energias renovables": "Ing. en Energias Renovables",
+  "ingenieria en energias renovables": "Ing. en Energias Renovables",
+  "ing en mecatronica": "Ing. en Mecatronica",
+  "ingenieria en mecatronica": "Ing. en Mecatronica",
+  "ingenieria mecatronica": "Ing. en Mecatronica",
+  "ing fisica": "Ing. Fisica",
+  "ingenieria fisica": "Ing. Fisica",
+  "ing industrial logistica": "Ing. Industrial Logistica",
+  "ingenieria industrial logistica": "Ing. Industrial Logistica",
+  "ing quimica industrial": "Ing. Quimica Industrial",
+  "ingenieria quimica industrial": "Ing. Quimica Industrial",
+  "ing software merida": "Ing. Software (Merida)",
+  "ing software tizimin": "Ing. Software (Tizimin)",
+  "ingenieria de software merida": "Ing. Software (Merida)",
+  "ingenieria de software tizimin": "Ing. Software (Tizimin)",
+  "medico cirujano": "Medico Cirujano",
+  "medico veterinario zootecnista": "Medico Veterinario Zootecnista"
+});
+
 const EXANI_I_CAREER_ALIASES = {
   "prepa 1": "Preparatoria Uno",
   "prepa uno": "Preparatoria Uno",
@@ -108,7 +191,7 @@ const EXAM_CONFIGS = {
     captureQuestionStartColumn: 10,
     keyStartColumn: 3,
     defaultKey: "CBBBCCBACCABAAAAACBBACBABBCCAABBCABBBABACBBCCACCBBBACBCCBAAC",
-    careers: SHEET_CAREERS,
+    careers: UADY_CAREERS,
     careerAliases: CAREER_ALIASES,
     areas: [
       { code: "ri", name: "Redaccion indirecta", start: 1, end: 20 },
@@ -173,19 +256,29 @@ function respond_(payload, callback) {
 function appendCapture_(params, rawBody) {
   const lock = LockService.getScriptLock();
   lock.waitLock(15000);
+  let captura = null;
+  let claves = null;
+  let resultados = null;
+  let config = null;
+  let targetRow = 0;
 
   try {
     const payload = parseCapturePayload_(params, rawBody);
-    const config = getExamConfig_(payload.exam || params.exam);
+    config = getExamConfig_(payload.exam || params.exam);
     validateCapturePayload_(payload, config);
 
     const spreadsheet = SpreadsheetApp.openById(SPREADSHEET_ID);
-    const captura = getOrCreateCaptureSheet_(spreadsheet, config);
-    const claves = spreadsheet.getSheetByName("Claves");
-    const resultados = spreadsheet.getSheetByName("Resultados");
+    captura = getOrCreateCaptureSheet_(spreadsheet, config);
+    claves = spreadsheet.getSheetByName("Claves");
+    resultados = spreadsheet.getSheetByName("Resultados");
 
-    const targetRow = Math.max(4, captura.getLastRow() + 1);
+    if (config.id === "exani2" && (!claves || !resultados)) {
+      throw new Error("Faltan las pestañas Claves o Resultados para insertar la calificación");
+    }
+
+    targetRow = Math.max(4, captura.getLastRow() + 1);
     ensureRows_(captura, targetRow);
+    prepareCaptureRow_(captura, targetRow, config);
     if (claves && resultados && config.id === "exani2") {
       ensureRows_(claves, targetRow + 1);
       ensureRows_(resultados, targetRow + 1);
@@ -203,9 +296,13 @@ function appendCapture_(params, rawBody) {
       payload.grade || "",
       payload.group || "",
       payload.version || "1"
-    ].concat(numericResponses);
+    ].concat(numericResponses, [
+      payload.capturedBy || "",
+      new Date(),
+      payload.captureSource || "captura_manual"
+    ]);
 
-    captura.getRange(targetRow, 1, 1, 9 + config.questionCount).setValues([capturaRow]);
+    captura.getRange(targetRow, 1, 1, 12 + config.questionCount).setValues([capturaRow]);
     if (claves && resultados && config.id === "exani2") {
       setFormulaRows_(claves, resultados, targetRow);
     }
@@ -221,6 +318,7 @@ function appendCapture_(params, rawBody) {
       message: "Captura guardada"
     };
   } catch (error) {
+    rollbackCaptureWrite_(captura, claves, resultados, targetRow, config);
     return {
       ok: false,
       error: String(error && error.message ? error.message : error)
@@ -355,6 +453,10 @@ function parseCapturePayload_(params, rawBody) {
     event: cleanText_(params.event),
     year: cleanText_(params.year),
     version: cleanText_(params.version || "1"),
+    capturedBy: cleanText_(params.capturedBy),
+    capturedRole: cleanText_(params.capturedRole),
+    capturedAt: cleanText_(params.capturedAt),
+    captureSource: cleanText_(params.captureSource || params.source),
     responses: String(params.responses || "").split(",")
   };
 }
@@ -367,10 +469,13 @@ function validateCapturePayload_(payload, config) {
   payload.event = cleanText_(payload.event);
   payload.year = cleanText_(payload.year || "2025");
   payload.version = cleanText_(payload.version || "1");
+  payload.capturedBy = cleanText_(payload.capturedBy || "Sin identificar");
+  payload.capturedRole = cleanText_(payload.capturedRole);
+  payload.captureSource = cleanText_(payload.captureSource || payload.source || "captura_manual");
 
   if (!payload.name) throw new Error("Falta nombre");
   if (!payload.career) throw new Error("Falta carrera");
-  if (config.careers.indexOf(payload.career) < 0) throw new Error("Carrera fuera del catálogo del Sheet: " + payload.career);
+  if (config.careers.indexOf(payload.career) < 0) throw new Error("Carrera fuera del catálogo configurado: " + payload.career);
   if (!payload.event) throw new Error("Falta evento");
   if (SHEET_YEARS.indexOf(payload.year) < 0) throw new Error("Año fuera del catálogo del Sheet: " + payload.year + ". Usa 2021, 2022, 2023, 2024 o 2025.");
   if (!Array.isArray(payload.responses) || payload.responses.length !== config.questionCount) {
@@ -422,6 +527,26 @@ function ensureRows_(sheet, row) {
   }
 }
 
+function prepareCaptureRow_(sheet, row, config) {
+  sheet.getRange(row, 1, 1, 12 + config.questionCount).clearDataValidations();
+}
+
+function rollbackCaptureWrite_(captura, claves, resultados, targetRow, config) {
+  if (!captura || !targetRow || !config) return;
+
+  try {
+    captura.getRange(targetRow, 1, 1, 12 + config.questionCount).clearContent();
+    if (config.id === "exani2") {
+      const formulaRow = targetRow + 1;
+      if (claves) claves.getRange(formulaRow, 1, 1, 62).clearContent();
+      if (resultados) resultados.getRange(formulaRow, 1, 1, 14).clearContent();
+    }
+    SpreadsheetApp.flush();
+  } catch (rollbackError) {
+    console.warn("No se pudo limpiar una captura fallida", rollbackError);
+  }
+}
+
 function columnName_(columnNumber) {
   var name = "";
   var number = columnNumber;
@@ -456,7 +581,7 @@ function buildPayload_(params) {
   const key = getAnswerKey_(spreadsheet, config);
   const lastRow = captura.getLastRow();
   const rowCount = Math.max(0, lastRow - 3);
-  const capturaRows = rowCount ? captura.getRange(4, 1, rowCount, 9 + config.questionCount).getValues() : [];
+  const capturaRows = rowCount ? captura.getRange(4, 1, rowCount, 12 + config.questionCount).getValues() : [];
 
   const students = capturaRows
     .map(function(row, index) {
@@ -477,7 +602,12 @@ function buildPayload_(params) {
         career: cleanText_(row[3]),
         event: cleanText_(row[4]) || "Sin evento",
         year: String(row[5] || ""),
+        grade: cleanText_(row[6]),
+        group: cleanText_(row[7]),
         version: String(row[8] || "1"),
+        capturedBy: cleanText_(row[9 + config.questionCount]),
+        capturedAt: row[10 + config.questionCount],
+        captureSource: cleanText_(row[11 + config.questionCount]),
         scores: scores,
         responses: responses
       };
@@ -521,6 +651,7 @@ function ensureCaptureHeader_(sheet, config) {
   for (var i = 1; i <= config.questionCount; i++) {
     headers.push("P" + i);
   }
+  headers.push("Capturista", "Fecha captura", "Fuente");
   sheet.getRange(3, 1, 1, headers.length).setValues([headers]);
 }
 

@@ -107,11 +107,16 @@
           </div>
         </section>
 
-        <section class="kpi-grid">
+        <section class="kpi-grid individual-kpi-grid">
           <article class="kpi-card accent-purple">
-            <span>Puntaje global</span>
+            <span>Indice CENEVAL</span>
             <strong id="globalScore">-</strong>
-            <small>Escala tipo CENEVAL</small>
+            <small>Escala de 700 a 1300</small>
+          </article>
+          <article class="kpi-card accent-blue">
+            <span>Porcentaje de aciertos</span>
+            <strong id="accuracyScore">-</strong>
+            <small>Escala de 0 a 100</small>
           </article>
           <article class="kpi-card accent-mint">
             <span>Punto de corte</span>
@@ -128,7 +133,7 @@
         <section class="report-grid" id="report">
           <article class="panel cutoff-card">
             <div class="panel-header">
-              <p class="card-title">Lectura contra punto de corte</p>
+              <p class="card-title">¿Entrarias a la carrera de tu eleccion?</p>
               <span class="badge">UADY 2025</span>
             </div>
             <div class="illustrated-panel-body">
@@ -167,6 +172,15 @@
               <img class="panel-character unicorn-art" src="./assets/unicornio.png" alt="" />
             </div>
           </article>
+        </section>
+
+        <section class="panel scale-card">
+          <div class="panel-header">
+            <p class="card-title">Porcentaje de aciertos y escala CENEVAL</p>
+            <span class="badge" id="scaleStatusBadge">-</span>
+          </div>
+          <div id="scoreScale" class="dual-scale" aria-label="Equivalencia entre porcentaje de aciertos e indice CENEVAL"></div>
+          <p id="scaleSummary" class="message">Selecciona un alumno para ver su posicion en ambas escalas.</p>
         </section>
 
         <section class="area-section">
@@ -246,7 +260,7 @@
             </div>
           </section>
           <section class="print-kpis">
-            <div><span>Puntaje global</span><strong id="printGlobalScore">-</strong></div>
+            <div><span>Indice CENEVAL</span><strong id="printGlobalScore">-</strong></div>
             <div><span>Punto de corte</span><strong id="printCutoffScore">-</strong></div>
             <div><span>Diferencia</span><strong id="printCutoffDelta">-</strong></div>
             <div><span>Promedio evento</span><strong id="printEventAverage">-</strong></div>
@@ -254,7 +268,7 @@
           <section class="print-columns">
             <article class="print-illustrated print-cutoff-box">
               <div>
-                <h3>Lectura contra punto de corte</h3>
+                <h3>¿Entrarias a la carrera de tu eleccion?</h3>
                 <p id="printCutoffMessage">-</p>
               </div>
               <img src="./assets/cerebro.png" alt="" />
@@ -278,6 +292,11 @@
             <p id="printAdvisorMessage">-</p>
           </section>
           <section class="print-action-plan">
+            <div class="print-scale-head">
+              <h3>Equivalencia de resultado</h3>
+              <p id="printScaleMessage">-</p>
+            </div>
+            <div id="printScale" class="dual-scale print-dual-scale" aria-hidden="true"></div>
             <article>
               <span>Foco de estudio</span>
               <strong id="printStudyFocus">-</strong>
@@ -385,14 +404,143 @@
       <section class="view" id="baseView" data-view="base">
         <section class="section-heading">
           <div>
-            <p class="eyebrow">Base conectada</p>
-            <h2>Google Sheets</h2>
+            <p class="eyebrow">Base por evento</p>
+            <h2>Reporte para escuela</h2>
             <p class="muted">La app lee el histórico y guardará nuevos intentos en el Sheet original.</p>
           </div>
         </section>
         <section class="panel base-panel">
           <p class="card-title">Estado</p>
           <p id="baseStatus">Datos cargados desde el endpoint configurado.</p>
+        </section>
+
+        <section class="panel base-controls">
+          <label>
+            <span>Evento para reporte</span>
+            <select id="baseEventSelect"></select>
+          </label>
+          <div class="base-actions">
+            <button id="basePrintButton" type="button">Exportar reporte</button>
+          </div>
+          <div class="event-summary capture-score">
+            <span>Alumnos analizados</span>
+            <strong id="baseStudentCount">0</strong>
+            <small id="baseSelectedEvent">Selecciona un evento</small>
+          </div>
+        </section>
+
+        <section class="kpi-grid base-kpi-grid">
+          <article class="kpi-card">
+            <span>Promedio de aciertos</span>
+            <strong id="baseAverage">-</strong>
+            <small id="baseAverageMeta">Escala de 0 a 100</small>
+          </article>
+          <article class="kpi-card accent-mint">
+            <span>Competitivos + altos</span>
+            <strong id="baseAboveCutoff">-</strong>
+            <small id="baseAboveCutoffMeta">Alumnos desde 70%</small>
+          </article>
+          <article class="kpi-card accent-red">
+            <span>Prioridad academica</span>
+            <strong id="basePriorityCount">-</strong>
+            <small id="basePriorityMeta">Requieren seguimiento</small>
+          </article>
+        </section>
+
+        <section class="base-report-grid">
+          <article class="panel base-executive">
+            <div class="panel-header">
+              <p class="card-title">Lectura ejecutiva</p>
+              <span class="badge" id="baseExamBadge">EXANI II</span>
+            </div>
+            <p id="baseExecutiveSummary" class="message">Selecciona un evento con alumnos capturados.</p>
+            <div class="base-highlight-strip" id="baseHighlightStrip"></div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-header">
+              <p class="card-title">Distribucion de niveles</p>
+            </div>
+            <div class="base-distribution" id="baseDistribution"></div>
+          </article>
+        </section>
+
+        <section class="base-report-grid">
+          <article class="panel">
+            <div class="panel-header">
+              <p class="card-title">Diagnostico por area</p>
+            </div>
+            <div class="base-area-bars" id="baseAreaBars"></div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-header">
+              <p class="card-title">Carreras objetivo</p>
+            </div>
+            <div class="base-table-wrap">
+              <table class="base-table">
+                <thead>
+                  <tr>
+                    <th>Carrera</th>
+                    <th>Alumnos</th>
+                    <th>Promedio</th>
+                    <th>Brecha</th>
+                  </tr>
+                </thead>
+                <tbody id="baseCareerRows"></tbody>
+              </table>
+            </div>
+          </article>
+        </section>
+
+        <section class="base-report-grid">
+          <article class="panel">
+            <div class="panel-header">
+              <p class="card-title">Grupos escolares</p>
+            </div>
+            <div class="base-table-wrap">
+              <table class="base-table">
+                <thead>
+                  <tr>
+                    <th>Grupo</th>
+                    <th>Alumnos</th>
+                    <th>Promedio</th>
+                    <th>Prioridad</th>
+                  </tr>
+                </thead>
+                <tbody id="baseGroupRows"></tbody>
+              </table>
+            </div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-header">
+              <p class="card-title">Recomendaciones para escuela</p>
+            </div>
+            <div class="base-recommendations" id="baseSchoolRecommendations"></div>
+          </article>
+        </section>
+
+        <section class="panel base-student-panel">
+          <div class="panel-header">
+            <p class="card-title">Alumnos y acciones sugeridas</p>
+            <span class="badge" id="baseStudentMeta">0 registros</span>
+          </div>
+          <div class="base-table-wrap">
+            <table class="base-table">
+              <thead>
+                <tr>
+                  <th>Alumno</th>
+                  <th>Carrera</th>
+                  <th>Aciertos</th>
+                  <th>Area prioridad</th>
+                  <th>Corte</th>
+                  <th>Accion sugerida</th>
+                </tr>
+              </thead>
+              <tbody id="baseStudentRows"></tbody>
+            </table>
+          </div>
         </section>
       </section>
 
