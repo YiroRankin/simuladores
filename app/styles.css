@@ -1016,6 +1016,78 @@ button:disabled {
   gap: 16px;
 }
 
+.score-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 16px;
+}
+
+.area-score-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(180px, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.area-score-card {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  background: #fbfcff;
+  border: 1px solid #e1def8;
+  border-radius: 14px;
+}
+
+.area-score-head {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.area-score-head b {
+  display: grid;
+  width: 46px;
+  height: 38px;
+  place-items: center;
+  color: #fff;
+  background: var(--purple);
+  border-radius: 9px;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.area-score-head strong {
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+.area-score-card input {
+  width: 100%;
+  min-height: 54px;
+  padding: 10px 12px;
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid #d9dfec;
+  border-radius: 10px;
+  font-size: 28px;
+  font-weight: 900;
+  outline: 0;
+}
+
+.area-score-card input:focus {
+  border-color: var(--purple);
+  box-shadow: 0 0 0 3px rgba(86, 56, 183, 0.12);
+}
+
+.area-score-card small {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .compact {
   min-height: 34px;
   padding-inline: 14px;
@@ -1922,11 +1994,16 @@ button:disabled {
   .illustrated-panel-body,
   .capture-details,
   .capture-layout,
+  .score-layout,
   .base-controls,
   .base-report-grid,
   .batch-layout,
   .photo-layout,
   .name-crops {
+    grid-template-columns: 1fr;
+  }
+
+  .area-score-grid {
     grid-template-columns: 1fr;
   }
 

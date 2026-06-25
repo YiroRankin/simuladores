@@ -23,7 +23,7 @@ Proyecto para construir una webapp interna de calificacion y reporte de resultad
 
 1. Crear o seleccionar evento de aplicacion.
 2. Registrar alumno y carrera de interes.
-3. Capturar respuestas manualmente o subir foto de hoja de respuestas.
+3. Capturar respuestas manualmente, subir foto de hoja de respuestas o ingresar puntajes por area cuando solo existan indices CENEVAL.
 4. Revisar lectura de respuestas.
 5. Calificar contra la clave oficial.
 6. Guardar intento en Google Sheets.
@@ -47,6 +47,12 @@ Para cada area:
 ICNE = ((aciertos / 0.2) - 50) / 16.67
 Puntaje area = 1000 + (100 * ICNE)
 Puntaje global = promedio de RI, CL y PM
+```
+
+Si solo se capturan puntajes por area, la app estima aciertos con:
+
+```text
+Aciertos estimados = redondear(((puntaje area - 700) / 600) * reactivos del area)
 ```
 
 En la app nueva esta formula debe quedar centralizada y testeada para evitar diferencias entre captura, reporte y PDF.

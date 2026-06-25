@@ -10,6 +10,9 @@ El primer prototipo puede leer el archivo actual sin reestructurarlo:
 - `Captura!E4:E`: evento.
 - `Captura!F4:F`: ano.
 - `Captura!J4:BQ`: respuestas 1-60.
+- `Captura` conserva las columnas de respuestas y agrega al final columnas opcionales para capturas por puntaje de area:
+  - `Modo captura`: `respuestas` o `puntajes_area`.
+  - Por cada area: `XX aciertos estimados` y `XX puntaje`.
 - `Claves!C4:BJ4`: clave oficial.
 - `Resultados!G5:J`: puntajes RI, CL, PM y global.
 - `data/uady-2025.json`: carrera, punto de corte 2025, sustentantes, admitidos y porcentaje de admision.
@@ -67,6 +70,17 @@ Aunque el MVP lea el archivo actual, conviene crear una version limpia con estas
 | attempt_id | area | aciertos | puntaje |
 |---|---|---:|---:|
 | attempt_id | RI | 12 | 1060 |
+
+### captura_puntajes_area
+
+Cuando solo se tienen indices CENEVAL por area, la app guarda el intento sin respuestas crudas y calcula aciertos estimados con una equivalencia lineal:
+
+```text
+aciertos_estimados = redondear(((puntaje_area - 700) / 600) * reactivos_area)
+puntaje_global = promedio(puntajes_area)
+```
+
+La escala se limita a 700-1300. El reporte individual marca esos aciertos como estimados para diferenciarlos de los aciertos calculados contra clave.
 
 ### cortes_uady
 

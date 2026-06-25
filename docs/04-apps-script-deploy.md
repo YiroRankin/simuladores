@@ -99,7 +99,8 @@ Si la URL esta bien configurada, el selector de alumnos debe llenarse con datos 
 - El endpoint ya puede guardar nuevas capturas con `action=appendCapture`.
 - La app conserva datos de muestra cuando `apiUrl` esta vacio o cuando el endpoint falla.
 - El endpoint soporta JSON y JSONP para que la webapp pueda cargarse tambien desde `file://`.
-- El guardado escribe en `Captura` y agrega formulas en `Claves` y `Resultados`.
+- El guardado por respuestas escribe en `Captura` y agrega formulas en `Claves` y `Resultados`.
+- El guardado por puntajes de area escribe las respuestas vacias, agrega columnas finales con `Modo captura`, aciertos estimados y puntajes por area, y deja valores directos en `Resultados` cuando aplica.
 - El OCR de nombre usa `POST`, asi que si el navegador bloquea la peticion desde `file://`, conviene servir la app por `localhost` o migrarla a HTML Service de Apps Script.
 
 ## 7. Probar captura manual

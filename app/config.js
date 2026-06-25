@@ -7,7 +7,7 @@ window.SIMULADORES_CONFIG = {
   campus: "Veracruz",
   accessMode: "captura",
   permissions: {
-    modules: ["report", "capture"],
+    modules: ["report", "capture", "score"],
   },
   startView: "capture",
 };
