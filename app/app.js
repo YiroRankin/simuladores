@@ -1220,7 +1220,7 @@ function renderAreaScoreCapture() {
           <strong>${area.label}</strong>
         </span>
         <input id="scoreArea${area.code}" type="number" min="700" max="1300" step="1" inputmode="numeric" placeholder="700-1300" />
-        <small id="scoreArea${area.code}Help">0/${total} aciertos estimados</small>
+        <small id="scoreArea${area.code}Help">0/${total} aciertos</small>
       </label>
     `;
   }).join("");
@@ -1694,8 +1694,7 @@ function renderReport(studentId) {
   );
 
   els.studentName.textContent = student.name;
-  const sourceNote = student.captureSource === "puntajes_area" ? " | aciertos estimados" : "";
-  els.studentMeta.textContent = `${student.career} | ${student.event} | ${student.year}${sourceNote}`;
+  els.studentMeta.textContent = `${student.career} | ${student.event} | ${student.year}`;
   els.globalScore.textContent = formatScore(student.scores.global);
   if (els.accuracyScore) {
     els.accuracyScore.textContent = formatPercentScore(studentAccuracyPercent(student), 1);
@@ -1741,7 +1740,7 @@ function renderReport(studentId) {
     document.querySelector(`#${areaElementId(area, "Score")}`).textContent = formatScore(student.scores[area.code]);
     document.querySelector(`#${areaElementId(area, "Correct")}`).textContent = areaCorrect === null
       ? "- aciertos"
-      : `${areaCorrect}/${areaTotal} ${estimated ? "aciertos estimados" : "aciertos"}`;
+      : `${areaCorrect}/${areaTotal} aciertos`;
     document.querySelector(`#${areaElementId(area, "Average")}`).textContent = formatScore(areaAverages[area.code]);
     document.querySelector(`#${areaElementId(area, "Delta")}`).textContent = formatAreaDelta(areaDelta);
     document.querySelector(`#${areaElementId(area, "Compare")}`).className = `area-compare ${areaDelta > 0 ? "positive" : areaDelta < 0 ? "negative" : "neutral"}`;
@@ -1768,7 +1767,7 @@ function renderDualScale(student) {
       : { label: "Rojo", text: "este resultado muestra áreas que conviene atender pronto; un curso de admisión puede ordenar el estudio, reforzar bases y acelerar la mejora antes del siguiente simulador." };
 
   els.scaleStatusBadge.textContent = level.label;
-  els.scaleSummary.textContent = `${formatPercentScore(result.accuracyPercentage, 1)} de aciertos estimados equivale a un índice CENEVAL de ${formatScore(score)}. ${level.text}`;
+  els.scaleSummary.textContent = `${formatPercentScore(result.accuracyPercentage, 1)} de aciertos equivale a un índice CENEVAL de ${formatScore(score)}. ${level.text}`;
 }
 
 function advisorMessageFor(student, eventDelta, cutoffDelta, weakestArea, strongestArea) {
@@ -1811,7 +1810,7 @@ function renderPrintReport(context) {
   els.printCutoffMessage.textContent = els.cutoffMessage.textContent;
   const printScale = els.printScale ? renderScoreScale(els.printScale, { score: student.scores.global, showAccuracy: true }) : null;
   if (els.printScaleMessage && printScale) {
-    els.printScaleMessage.textContent = `${formatPercentScore(printScale.accuracyPercentage, 1)} de aciertos estimados en escala 0-100. Una preparación guiada ayuda a convertir este diagnóstico en avance medible antes del examen real.`;
+    els.printScaleMessage.textContent = `${formatPercentScore(printScale.accuracyPercentage, 1)} de aciertos en escala 0-100. Una preparación guiada ayuda a convertir este diagnóstico en avance medible antes del examen real.`;
   }
   if (els.printAreaRows) {
     els.printAreaRows.innerHTML = currentAreas().map((area) => {
@@ -1821,7 +1820,7 @@ function renderPrintReport(context) {
       return `
         <tr>
           <th>${area.label}</th>
-          <td>${correct === null ? "-" : `${correct}/${total}${estimated ? " estimados" : ""}`}</td>
+          <td>${correct === null ? "-" : `${correct}/${total}`}</td>
           <td>${formatScore(student.scores[area.code])}</td>
         </tr>
       `;
@@ -2092,7 +2091,7 @@ function updateAreaScorePreview() {
     if (correctElement) correctElement.textContent = `${correct}/${total}`;
     if (helpElement) {
       helpElement.textContent = validScore
-        ? `${correct}/${total} aciertos estimados`
+        ? `${correct}/${total} aciertos`
         : `Captura un puntaje entre 700 y 1300`;
     }
   });
@@ -2101,7 +2100,7 @@ function updateAreaScorePreview() {
   els.scoreCorrectCount.textContent = preview.captured ? String(preview.correct) : "-";
   els.scoreGlobalScore.textContent = preview.complete ? formatScore(preview.global) : "-";
   els.scoreStatus.textContent = preview.complete
-    ? `${preview.correct} aciertos estimados`
+    ? `${preview.correct} aciertos`
     : `Faltan ${currentAreas().length - preview.captured} áreas`;
 
   const fieldsReady = Boolean(
