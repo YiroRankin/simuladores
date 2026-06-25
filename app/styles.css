@@ -1355,6 +1355,7 @@ button:disabled {
 }
 
 .base-kpi-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   margin-top: 16px;
 }
 
@@ -1425,7 +1426,7 @@ button:disabled {
 .base-band,
 .base-area-row {
   display: grid;
-  grid-template-columns: 150px minmax(0, 1fr) 52px;
+  grid-template-columns: 210px minmax(0, 1fr) 58px;
   gap: 12px;
   align-items: center;
 }

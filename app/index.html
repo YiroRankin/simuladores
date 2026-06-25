@@ -492,9 +492,9 @@
       <section class="view" id="baseView" data-view="base">
         <section class="section-heading">
           <div>
-            <p class="eyebrow">Base por evento</p>
-            <h2>Reporte para escuela</h2>
-            <p class="muted">La app lee el histórico y guardará nuevos intentos en el Sheet original.</p>
+            <p class="eyebrow">Reporte institucional</p>
+            <h2>Diagnóstico de aprovechamiento</h2>
+            <p class="muted">Consulta el aprovechamiento observado de los alumnos participantes por evento.</p>
           </div>
         </section>
         <section class="panel base-panel">
@@ -519,19 +519,24 @@
 
         <section class="kpi-grid base-kpi-grid">
           <article class="kpi-card">
-            <span>Promedio de aciertos</span>
+            <span>Aprovechamiento promedio</span>
             <strong id="baseAverage">-</strong>
             <small id="baseAverageMeta">Escala de 0 a 100</small>
           </article>
+          <article class="kpi-card accent-blue">
+            <span>Mediana del grupo</span>
+            <strong id="baseMedian">-</strong>
+            <small id="baseMedianMeta">Resultado central</small>
+          </article>
           <article class="kpi-card accent-mint">
-            <span>Competitivos + altos</span>
+            <span>Consolidado o destacado</span>
             <strong id="baseAboveCutoff">-</strong>
-            <small id="baseAboveCutoffMeta">Alumnos desde 70%</small>
+            <small id="baseAboveCutoffMeta">Participantes desde 70%</small>
           </article>
           <article class="kpi-card accent-red">
-            <span>Prioridad academica</span>
+            <span>Requiere fortalecimiento</span>
             <strong id="basePriorityCount">-</strong>
-            <small id="basePriorityMeta">Requieren seguimiento</small>
+            <small id="basePriorityMeta">Participantes bajo 60%</small>
           </article>
         </section>
 
@@ -547,7 +552,7 @@
 
           <article class="panel">
             <div class="panel-header">
-              <p class="card-title">Distribucion de niveles</p>
+              <p class="card-title">Distribución de aprovechamiento</p>
             </div>
             <div class="base-distribution" id="baseDistribution"></div>
           </article>
@@ -563,16 +568,16 @@
 
           <article class="panel">
             <div class="panel-header">
-              <p class="card-title">Carreras objetivo</p>
+              <p class="card-title">Perfil de intereses académicos</p>
             </div>
             <div class="base-table-wrap">
               <table class="base-table">
                 <thead>
                   <tr>
-                    <th>Carrera</th>
-                    <th>Alumnos</th>
-                    <th>Promedio</th>
-                    <th>Brecha</th>
+                    <th>Interés académico</th>
+                    <th>Participantes</th>
+                    <th>Porcentaje</th>
+                    <th>Aprovechamiento</th>
                   </tr>
                 </thead>
                 <tbody id="baseCareerRows"></tbody>
@@ -593,7 +598,7 @@
                     <th>Grupo</th>
                     <th>Alumnos</th>
                     <th>Promedio</th>
-                    <th>Prioridad</th>
+                    <th>Fortalecimiento</th>
                   </tr>
                 </thead>
                 <tbody id="baseGroupRows"></tbody>
@@ -619,11 +624,11 @@
               <thead>
                 <tr>
                   <th>Alumno</th>
-                  <th>Carrera</th>
-                  <th>Aciertos</th>
-                  <th>Area prioridad</th>
-                  <th>Corte</th>
-                  <th>Accion sugerida</th>
+                  <th>Grupo</th>
+                  <th>Aprovechamiento</th>
+                  <th>Área con mayor oportunidad</th>
+                  <th>Banda descriptiva</th>
+                  <th>Recomendación</th>
                 </tr>
               </thead>
               <tbody id="baseStudentRows"></tbody>
@@ -794,6 +799,6 @@
     </main>
 
     <script src="./config.js"></script>
-    <script src="./app.js?v=20260625-family-report-1"></script>
+    <script src="./app.js?v=20260625-school-base-1"></script>
   </body>
 </html>

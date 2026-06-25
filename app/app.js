@@ -616,6 +616,8 @@ const els = {
   baseSelectedEvent: document.querySelector("#baseSelectedEvent"),
   baseAverage: document.querySelector("#baseAverage"),
   baseAverageMeta: document.querySelector("#baseAverageMeta"),
+  baseMedian: document.querySelector("#baseMedian"),
+  baseMedianMeta: document.querySelector("#baseMedianMeta"),
   baseAboveCutoff: document.querySelector("#baseAboveCutoff"),
   baseAboveCutoffMeta: document.querySelector("#baseAboveCutoffMeta"),
   basePriorityCount: document.querySelector("#basePriorityCount"),
@@ -688,6 +690,30 @@ function average(values) {
   const valid = values.filter((value) => Number.isFinite(value));
   if (!valid.length) return 0;
   return Math.round(valid.reduce((sum, value) => sum + value, 0) / valid.length);
+}
+
+function mean(values) {
+  const valid = values.filter((value) => Number.isFinite(value));
+  if (!valid.length) return 0;
+  return valid.reduce((sum, value) => sum + value, 0) / valid.length;
+}
+
+function median(values) {
+  const valid = values.filter((value) => Number.isFinite(value)).sort((a, b) => a - b);
+  if (!valid.length) return 0;
+  const middle = Math.floor(valid.length / 2);
+  if (valid.length % 2) return valid[middle];
+  return (valid[middle - 1] + valid[middle]) / 2;
+}
+
+function percentile(values, percentileValue) {
+  const valid = values.filter((value) => Number.isFinite(value)).sort((a, b) => a - b);
+  if (!valid.length) return 0;
+  const index = (valid.length - 1) * percentileValue;
+  const lower = Math.floor(index);
+  const upper = Math.ceil(index);
+  if (lower === upper) return valid[lower];
+  return valid[lower] + ((valid[upper] - valid[lower]) * (index - lower));
 }
 
 function formatScore(value) {
@@ -804,10 +830,10 @@ function renderScoreScale(target, { score, minScore = 700, maxScore = 1300, show
 }
 
 function scoreLevelFromPercent(percent) {
-  if (percent > 85) return { key: "high", label: "Alto", note: "Alto rendimiento" };
-  if (percent >= 70) return { key: "competitive", label: "Competitivo", note: "Buen punto de partida" };
-  if (percent >= 60) return { key: "base", label: "Base", note: "Requiere practica dirigida" };
-  return { key: "priority", label: "Prioridad", note: "Necesita intervencion pronta" };
+  if (percent >= 85) return { key: "high", label: "Desempeño destacado", note: "Mantener y enriquecer el avance" };
+  if (percent >= 70) return { key: "competitive", label: "Desempeño consolidado", note: "Sostener hábitos de práctica" };
+  if (percent >= 60) return { key: "base", label: "En proceso de consolidación", note: "Reforzar habilidades clave" };
+  return { key: "priority", label: "Requiere fortalecimiento", note: "Acompañamiento académico focalizado" };
 }
 
 function escapeHtml(value) {
@@ -1330,16 +1356,12 @@ function getBaseStudents() {
   const unique = new Map();
 
   eventStudents.forEach((student) => {
-    const scoreKey = [
-      student.scores.global,
-      ...currentAreas().map((area) => student.scores[area.code] || 0),
-    ].join("-");
     const key = [
       normalizeText(student.name),
       normalizeText(student.career),
       normalizeText(student.event),
       normalizeText(student.year),
-      scoreKey,
+      normalizeText(student.version || "1"),
     ].join("|");
     const previous = unique.get(key);
     if (!previous || student.sourceRow >= previous.sourceRow) {
@@ -1349,14 +1371,6 @@ function getBaseStudents() {
 
   baseDuplicateCount = eventStudents.length - unique.size;
   return [...unique.values()];
-}
-
-function baseStudentCutoff(student) {
-  const cutoff = getCutoffForStudent(student);
-  return {
-    cutoff,
-    delta: cutoff ? student.scores.global - cutoff.cutoff : null,
-  };
 }
 
 function basePriorityArea(student) {
@@ -1372,17 +1386,18 @@ function baseLevelForStudent(student) {
   return scoreLevelFromPercent(studentAccuracyPercent(student));
 }
 
-function baseActionForStudent(student, delta, priorityArea) {
-  if (delta !== null && delta >= 0) {
-    return `Sostener ventaja y reforzar ${priorityArea.label}.`;
+function baseActionForStudent(student, priorityArea) {
+  const accuracy = studentAccuracyPercent(student);
+  if (accuracy >= 85) {
+    return `Mantener el desempeño y enriquecer ${priorityArea.label}.`;
   }
-  if (delta !== null && delta < -60) {
-    return `Plan intensivo en ${priorityArea.label} y seguimiento semanal.`;
+  if (accuracy >= 70) {
+    return `Sostener práctica regular y reforzar ${priorityArea.label}.`;
   }
-  if (studentAccuracyPercent(student) < 60) {
-    return `Regularizacion base en ${priorityArea.label}.`;
+  if (accuracy >= 60) {
+    return `Trabajo de consolidación en ${priorityArea.label}.`;
   }
-  return `Practica focalizada en ${priorityArea.label}.`;
+  return `Acompañamiento académico focalizado en ${priorityArea.label}.`;
 }
 
 function renderBaseEmpty(message = "Selecciona un evento con alumnos capturados.") {
@@ -1391,10 +1406,12 @@ function renderBaseEmpty(message = "Selecciona un evento con alumnos capturados.
   els.baseSelectedEvent.textContent = "Sin evento";
   els.baseAverage.textContent = "-";
   els.baseAverageMeta.textContent = "Escala de 0 a 100";
+  if (els.baseMedian) els.baseMedian.textContent = "-";
+  if (els.baseMedianMeta) els.baseMedianMeta.textContent = "Sin alumnos";
   els.baseAboveCutoff.textContent = "-";
-  els.baseAboveCutoffMeta.textContent = "Alumnos desde 70%";
+  els.baseAboveCutoffMeta.textContent = "Participantes desde 70%";
   els.basePriorityCount.textContent = "-";
-  els.basePriorityMeta.textContent = "Sin alumnos";
+  els.basePriorityMeta.textContent = "Participantes bajo 60%";
   els.baseExamBadge.textContent = currentProfile().shortLabel;
   els.baseExecutiveSummary.textContent = message;
   els.baseHighlightStrip.innerHTML = "";
@@ -1416,45 +1433,54 @@ function renderBaseReport() {
     return;
   }
 
-  const avgAccuracy = average(eventStudents.map(studentAccuracyPercent));
-  const withCutoff = eventStudents
-    .map((student) => ({ student, ...baseStudentCutoff(student) }))
-    .filter((item) => item.cutoff);
-  const competitiveOrHigh = eventStudents.filter((student) => studentAccuracyPercent(student) >= 70);
-  const competitiveHighPct = (competitiveOrHigh.length / eventStudents.length) * 100;
+  const accuracies = eventStudents.map(studentAccuracyPercent);
+  const avgAccuracy = mean(accuracies);
+  const medianAccuracy = median(accuracies);
+  const q1 = percentile(accuracies, 0.25);
+  const q3 = percentile(accuracies, 0.75);
+  const variabilityRange = q3 - q1;
+  const variabilityLabel = variabilityRange <= 10
+    ? "resultados relativamente homogéneos"
+    : variabilityRange <= 20
+      ? "variabilidad moderada"
+      : "alta diversidad de resultados";
+  const consolidatedOrHighlighted = eventStudents.filter((student) => studentAccuracyPercent(student) >= 70);
+  const consolidatedPct = (consolidatedOrHighlighted.length / eventStudents.length) * 100;
   const priorityStudents = eventStudents.filter((student) => {
     return studentAccuracyPercent(student) < 60;
   });
   const areaAverages = currentAreas().map((area) => ({
     ...area,
-    average: average(eventStudents.map((student) => cenevalToPercent(student.scores[area.code]))),
+    average: mean(eventStudents.map((student) => cenevalToPercent(student.scores[area.code]))),
   }));
   const strongest = areaAverages.reduce((best, area) => (area.average > best.average ? area : best), areaAverages[0]);
   const weakest = areaAverages.reduce((low, area) => (area.average < low.average ? area : low), areaAverages[0]);
 
   els.baseStudentCount.textContent = String(eventStudents.length);
   els.baseSelectedEvent.textContent = eventName;
-  els.baseAverage.textContent = formatPercentScore(avgAccuracy);
-  els.baseAverageMeta.textContent = `${eventStudents.length} alumno${eventStudents.length === 1 ? "" : "s"} evaluado${eventStudents.length === 1 ? "" : "s"}`;
-  els.baseAboveCutoff.textContent = formatPercentScore((competitiveOrHigh.length / eventStudents.length) * 100);
-  els.baseAboveCutoffMeta.textContent = `${competitiveOrHigh.length} de ${eventStudents.length} desde 70%`;
+  els.baseAverage.textContent = formatPercentScore(avgAccuracy, 1);
+  els.baseAverageMeta.textContent = `${eventStudents.length} participante${eventStudents.length === 1 ? "" : "s"} analizado${eventStudents.length === 1 ? "" : "s"}`;
+  if (els.baseMedian) els.baseMedian.textContent = formatPercentScore(medianAccuracy, 1);
+  if (els.baseMedianMeta) els.baseMedianMeta.textContent = `P25 ${formatPercentScore(q1, 1)} | P75 ${formatPercentScore(q3, 1)}`;
+  els.baseAboveCutoff.textContent = formatPercentScore((consolidatedOrHighlighted.length / eventStudents.length) * 100);
+  els.baseAboveCutoffMeta.textContent = `${consolidatedOrHighlighted.length} de ${eventStudents.length} desde 70%`;
   els.basePriorityCount.textContent = String(priorityStudents.length);
   els.basePriorityMeta.textContent = `${formatPercentScore((priorityStudents.length / eventStudents.length) * 100)} del grupo`;
   els.baseExamBadge.textContent = currentProfile().shortLabel;
   els.baseStatus.textContent = baseDuplicateCount
-    ? `Analisis generado para ${eventName}. Se omitieron ${baseDuplicateCount} duplicado${baseDuplicateCount === 1 ? "" : "s"} exacto${baseDuplicateCount === 1 ? "" : "s"} del resumen.`
-    : `Analisis generado para ${eventName}.`;
+    ? `Diagnóstico generado para ${eventName}. Se excluyeron ${baseDuplicateCount} registro${baseDuplicateCount === 1 ? "" : "s"} duplicado${baseDuplicateCount === 1 ? "" : "s"} del resumen.`
+    : `Diagnóstico generado para ${eventName}.`;
   els.baseExecutiveSummary.textContent =
-    `El evento ${eventName} concentra ${eventStudents.length} alumnos con promedio de aciertos de ${formatPercentScore(avgAccuracy)}. ` +
-    `La fortaleza academica del grupo es ${strongest.label} (${formatPercentScore(strongest.average)}) y el foco prioritario es ${weakest.label} (${formatPercentScore(weakest.average)}). ` +
-    (withCutoff.length
-      ? `${competitiveOrHigh.length} alumnos están en nivel competitivo o alto; ${priorityStudents.length} requieren seguimiento académico cercano.`
-      : `${priorityStudents.length} alumnos requieren seguimiento académico cercano según porcentaje de aciertos y desempeño por área.`);
+    `En la aplicación participaron ${eventStudents.length} estudiante${eventStudents.length === 1 ? "" : "s"} con registros válidos. ` +
+    `El aprovechamiento promedio fue de ${formatPercentScore(avgAccuracy, 1)}, con una mediana de ${formatPercentScore(medianAccuracy, 1)}. ` +
+    `${strongest.label} presentó el mayor nivel de aprovechamiento, mientras que ${weakest.label} concentró la principal oportunidad de fortalecimiento. ` +
+    `${formatPercentScore((consolidatedOrHighlighted.length / eventStudents.length) * 100, 1)} mostró desempeño consolidado o destacado y ${formatPercentScore((priorityStudents.length / eventStudents.length) * 100, 1)} requiere acompañamiento académico focalizado. ` +
+    `El grupo presenta ${variabilityLabel}.`;
 
   els.baseHighlightStrip.innerHTML = [
-    { label: "Fortaleza", value: strongest.label, tone: "ok" },
-    { label: "Foco", value: weakest.label, tone: "warn" },
-    { label: "Seguimiento", value: `${priorityStudents.length} alumnos`, tone: priorityStudents.length ? "risk" : "ok" },
+    { label: "Principal fortaleza", value: strongest.label, tone: "ok" },
+    { label: "Principal oportunidad", value: weakest.label, tone: "warn" },
+    { label: "Recomendación", value: priorityStudents.length ? `${priorityStudents.length} con acompañamiento focalizado` : "Mantener seguimiento preventivo", tone: priorityStudents.length ? "risk" : "ok" },
   ].map((item) => `
     <div class="base-highlight ${item.tone}">
       <span>${item.label}</span>
@@ -1466,16 +1492,16 @@ function renderBaseReport() {
   renderBaseAreaBars(areaAverages, avgAccuracy);
   renderBaseCareerRows(eventStudents);
   renderBaseGroupRows(eventStudents);
-  renderBaseRecommendations(eventStudents, weakest, priorityStudents, competitiveHighPct);
+  renderBaseRecommendations(eventStudents, weakest, priorityStudents, consolidatedPct);
   renderBaseStudentRows(eventStudents, avgAccuracy);
 }
 
 function renderBaseDistribution(eventStudents) {
   const bands = [
-    { key: "high", label: "Alto", min: 85 },
-    { key: "competitive", label: "Competitivo", min: 70 },
-    { key: "base", label: "Base", min: 60 },
-    { key: "priority", label: "Prioridad", min: 0 },
+    { key: "high", label: "Desempeño destacado", min: 85 },
+    { key: "competitive", label: "Desempeño consolidado", min: 70 },
+    { key: "base", label: "En proceso de consolidación", min: 60 },
+    { key: "priority", label: "Requiere fortalecimiento", min: 0 },
   ].map((band) => ({ ...band, count: 0 }));
 
   eventStudents.forEach((student) => {
@@ -1507,10 +1533,10 @@ function renderBaseAreaBars(areaAverages, avgAccuracy) {
       <div class="base-area-row">
         <div>
           <strong>${escapeHtml(area.label)}</strong>
-          <span>${delta >= 0 ? "+" : ""}${formatPercentScore(delta)} vs promedio del evento</span>
+          <span>${delta >= 0 ? "+" : ""}${formatPercentScore(delta, 1)} vs promedio del evento</span>
         </div>
         <div class="base-area-track"><span style="width:${pct}%"></span></div>
-        <em>${formatPercentScore(area.average)}</em>
+        <em>${formatPercentScore(area.average, 1)}</em>
       </div>
     `;
   }).join("");
@@ -1526,11 +1552,9 @@ function renderBaseCareerRows(eventStudents) {
 
   const rows = [...grouped.entries()]
     .map(([career, items]) => {
-      const avg = average(items.map(studentAccuracyPercent));
-      const deltas = items
-        .map((student) => baseStudentCutoff(student).delta)
-        .filter((delta) => delta !== null);
-      return { career, count: items.length, avg, gap: deltas.length ? average(deltas) : null };
+      const avg = mean(items.map(studentAccuracyPercent));
+      const pct = (items.length / eventStudents.length) * 100;
+      return { career, count: items.length, avg, pct };
     })
     .sort((a, b) => b.count - a.count || b.avg - a.avg)
     .slice(0, 10);
@@ -1540,11 +1564,11 @@ function renderBaseCareerRows(eventStudents) {
       <tr>
         <td>${escapeHtml(row.career)}</td>
         <td>${row.count}</td>
-        <td>${formatPercentScore(row.avg)}</td>
-        <td class="${row.gap === null ? "" : row.gap >= 0 ? "positive-cell" : "negative-cell"}">${row.gap === null ? "Sin corte" : `${row.gap >= 0 ? "+" : ""}${formatScore(row.gap)}`}</td>
+        <td>${formatPercentScore(row.pct, 1)}</td>
+        <td>${formatPercentScore(row.avg, 1)}</td>
       </tr>
     `).join("")
-    : `<tr><td colspan="4">Sin carreras capturadas.</td></tr>`;
+    : `<tr><td colspan="4">Sin intereses académicos capturados.</td></tr>`;
 }
 
 function renderBaseGroupRows(eventStudents) {
@@ -1557,7 +1581,7 @@ function renderBaseGroupRows(eventStudents) {
 
   const rows = [...grouped.entries()]
     .map(([group, items]) => {
-      const avg = average(items.map(studentAccuracyPercent));
+      const avg = mean(items.map(studentAccuracyPercent));
       const priority = items.filter((student) => {
         return studentAccuracyPercent(student) < 60;
       }).length;
@@ -1570,35 +1594,35 @@ function renderBaseGroupRows(eventStudents) {
       <tr>
         <td>${escapeHtml(row.group)}</td>
         <td>${row.count}</td>
-        <td>${formatPercentScore(row.avg)}</td>
+        <td>${formatPercentScore(row.avg, 1)}</td>
         <td class="${row.priority ? "negative-cell" : "positive-cell"}">${row.priority} alumno${row.priority === 1 ? "" : "s"}</td>
       </tr>
     `).join("")
     : `<tr><td colspan="4">Sin grupos capturados.</td></tr>`;
 }
 
-function renderBaseRecommendations(eventStudents, weakestArea, priorityStudents, competitiveHighPct) {
+function renderBaseRecommendations(eventStudents, weakestArea, priorityStudents, consolidatedPct) {
   const priorityRate = eventStudents.length ? (priorityStudents.length / eventStudents.length) * 100 : 0;
   const recommendations = [
     {
-      title: "Intervencion academica",
+      title: "Intervención académica",
       text: priorityStudents.length
-        ? `Abrir un bloque de seguimiento para ${priorityStudents.length} alumnos, iniciando por ${weakestArea.label}.`
-        : `Mantener seguimiento preventivo; no hay alumnos en prioridad critica con la regla actual.`,
+        ? `Abrir un bloque de acompañamiento para ${priorityStudents.length} participante${priorityStudents.length === 1 ? "" : "s"}, iniciando por ${weakestArea.label}.`
+        : `Mantener seguimiento preventivo; no hay participantes en la banda de fortalecimiento con la regla actual.`,
     },
     {
       title: "Trabajo por área",
-      text: `Usar ${weakestArea.label} como foco comun del siguiente taller o retroalimentacion grupal.`,
+      text: `Usar ${weakestArea.label} como foco común del siguiente taller o retroalimentación grupal.`,
     },
     {
-      title: "Comunicacion con familias",
+      title: "Comunicación con familias",
       text: priorityRate >= 25
-        ? `Compartir reporte individual y plan de mejora con familias de alumnos en prioridad.`
-        : `Entregar reportes individuales destacando fortalezas y metas por carrera.`,
+        ? `Compartir reporte individual y plan de mejora con familias de participantes que requieren fortalecimiento.`
+        : `Entregar reportes individuales destacando fortalezas y metas académicas.`,
     },
     {
-      title: "Indicador comercial",
-      text: `${formatPercentScore(competitiveHighPct)} de alumnos está en nivel competitivo o alto; esto permite presentar avance académico y casos de oportunidad.`,
+      title: "Lectura institucional",
+      text: `${formatPercentScore(consolidatedPct, 1)} de participantes se ubica en desempeño consolidado o destacado.`,
     },
   ];
 
@@ -1614,28 +1638,28 @@ function renderBaseStudentRows(eventStudents, avgAccuracy) {
   const rows = [...eventStudents]
     .sort((a, b) => studentAccuracyPercent(b) - studentAccuracyPercent(a))
     .map((student) => {
-      const { cutoff, delta } = baseStudentCutoff(student);
       const priorityArea = basePriorityArea(student);
       const level = baseLevelForStudent(student);
-      return { student, cutoff, delta, priorityArea, level };
+      return { student, priorityArea, level };
     });
 
   els.baseStudentMeta.textContent = `${rows.length} registro${rows.length === 1 ? "" : "s"}`;
-  els.baseStudentRows.innerHTML = rows.map(({ student, cutoff, delta, priorityArea, level }) => {
+  els.baseStudentRows.innerHTML = rows.map(({ student, priorityArea, level }) => {
     const accuracy = studentAccuracyPercent(student);
     const accuracyDelta = accuracy - avgAccuracy;
     const priorityAreaPercent = cenevalToPercent(priorityArea.score);
+    const groupLabel = [student.grade, student.group].filter(Boolean).join(" ") || "Sin grupo capturado";
     return `
       <tr>
         <td>
           <strong>${escapeHtml(student.name)}</strong>
-          <span>${escapeHtml([student.grade, student.group].filter(Boolean).join(" ") || level.note)}</span>
+          <span>${escapeHtml(level.note)}</span>
         </td>
-        <td>${escapeHtml(student.career)}</td>
+        <td>${escapeHtml(groupLabel)}</td>
         <td><b>${formatPercentScore(accuracy, 1)}</b><small>${accuracyDelta >= 0 ? "+" : ""}${formatPercentScore(accuracyDelta, 1)} vs grupo</small></td>
         <td>${escapeHtml(priorityArea.label)}<small>${formatPercentScore(priorityAreaPercent, 1)}</small></td>
-        <td class="${delta === null ? "" : delta >= 0 ? "positive-cell" : "negative-cell"}">${cutoff ? `${delta >= 0 ? "+" : ""}${formatScore(delta)}` : "Sin corte"}</td>
-        <td>${escapeHtml(baseActionForStudent(student, delta, priorityArea))}</td>
+        <td>${escapeHtml(level.label)}</td>
+        <td>${escapeHtml(baseActionForStudent(student, priorityArea))}</td>
       </tr>
     `;
   }).join("");
