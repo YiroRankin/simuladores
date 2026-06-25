@@ -62,31 +62,31 @@ let eventCatalog = [];
 let captureSource = "captura_manual";
 
 const roleModules = {
-  administrador: ["report", "capture", "batch", "photo", "base"],
-  admin: ["report", "capture", "batch", "photo", "base"],
-  capturista: ["report", "capture"],
+  administrador: ["report", "capture", "score", "batch", "photo", "base"],
+  admin: ["report", "capture", "score", "batch", "photo", "base"],
+  capturista: ["report", "capture", "score"],
   consulta: ["report", "base"],
 };
 
 const accessModes = {
   captura: {
-    modules: ["report", "capture"],
+    modules: ["report", "capture", "score"],
     startView: "capture",
   },
   base: {
-    modules: ["report", "capture", "base"],
+    modules: ["report", "capture", "score", "base"],
     startView: "base",
   },
   escuela: {
-    modules: ["report", "capture", "base"],
+    modules: ["report", "capture", "score", "base"],
     startView: "base",
   },
   admin: {
-    modules: ["report", "capture", "batch", "photo", "base"],
+    modules: ["report", "capture", "score", "batch", "photo", "base"],
     startView: "report",
   },
   completo: {
-    modules: ["report", "capture", "batch", "photo", "base"],
+    modules: ["report", "capture", "score", "batch", "photo", "base"],
     startView: "report",
   },
 };
@@ -539,6 +539,26 @@ const els = {
   viewSavedReportButton: document.querySelector("#viewSavedReportButton"),
   sameEventButton: document.querySelector("#sameEventButton"),
   newCaptureButton: document.querySelector("#newCaptureButton"),
+  scoreForm: document.querySelector("#scoreForm"),
+  scoreName: document.querySelector("#scoreName"),
+  scoreEmail: document.querySelector("#scoreEmail"),
+  scoreCareer: document.querySelector("#scoreCareer"),
+  scoreEvent: document.querySelector("#scoreEvent"),
+  scoreYear: document.querySelector("#scoreYear"),
+  scoreVersion: document.querySelector("#scoreVersion"),
+  areaScoreGrid: document.querySelector("#areaScoreGrid"),
+  scoreAreaList: document.querySelector("#scoreAreaList"),
+  scoreGlobalScore: document.querySelector("#scoreGlobalScore"),
+  scoreStatus: document.querySelector("#scoreStatus"),
+  scoreAreaCount: document.querySelector("#scoreAreaCount"),
+  scoreCorrectCount: document.querySelector("#scoreCorrectCount"),
+  scoreMessage: document.querySelector("#scoreMessage"),
+  saveScoreButton: document.querySelector("#saveScoreButton"),
+  clearScoreButton: document.querySelector("#clearScoreButton"),
+  scorePostSaveActions: document.querySelector("#scorePostSaveActions"),
+  scoreViewSavedReportButton: document.querySelector("#scoreViewSavedReportButton"),
+  scoreSameEventButton: document.querySelector("#scoreSameEventButton"),
+  scoreNewCaptureButton: document.querySelector("#scoreNewCaptureButton"),
   batchReadyCount: document.querySelector("#batchReadyCount"),
   batchStatus: document.querySelector("#batchStatus"),
   batchEvent: document.querySelector("#batchEvent"),
@@ -681,6 +701,11 @@ function cenevalToPercent(score) {
   return Number.isFinite(score) ? clamp((score - 700) / 6, 0, 100) : 0;
 }
 
+function scoreToEstimatedCorrect(score, total) {
+  if (!Number.isFinite(score) || !Number.isFinite(total) || total <= 0) return 0;
+  return Math.round(clamp((score - 700) / 600, 0, 1) * total);
+}
+
 function formatPercentScore(value, digits = 0) {
   if (!Number.isFinite(value)) return "-";
   const fixed = value.toFixed(digits);
@@ -688,14 +713,25 @@ function formatPercentScore(value, digits = 0) {
 }
 
 function studentAccuracyPercent(student) {
-  if (Array.isArray(student.responses) && student.responses.length === currentQuestionCount() && answerKey.length === currentQuestionCount()) {
+  const hasResponseCapture = Array.isArray(student.responses) &&
+    student.responses.length === currentQuestionCount() &&
+    student.responses.some(Boolean) &&
+    answerKey.length === currentQuestionCount();
+  if (hasResponseCapture) {
     const correct = student.responses.reduce((sum, response, index) => sum + (response && response === answerKey[index] ? 1 : 0), 0);
+    return (correct / currentQuestionCount()) * 100;
+  }
+  if (student.areaCorrects && currentAreas().every((area) => Number.isFinite(student.areaCorrects[area.code]))) {
+    const correct = currentAreas().reduce((sum, area) => sum + student.areaCorrects[area.code], 0);
     return (correct / currentQuestionCount()) * 100;
   }
   return cenevalToPercent(student.scores.global);
 }
 
 function studentAreaCorrect(student, area) {
+  if (student.areaCorrects && Number.isFinite(student.areaCorrects[area.code])) {
+    return student.areaCorrects[area.code];
+  }
   if (!Array.isArray(student.responses) || student.responses.length < area.end || answerKey.length < area.end) {
     return null;
   }
@@ -705,6 +741,17 @@ function studentAreaCorrect(student, area) {
     if (student.responses[index] && student.responses[index] === answerKey[index]) correct++;
   }
   return correct;
+}
+
+function studentAreaCorrectIsEstimated(student, area) {
+  const hasAreaResponses = Array.isArray(student.responses) &&
+    student.responses.slice(area.start - 1, area.end).some(Boolean) &&
+    answerKey.length >= area.end;
+  return Boolean(
+    student.areaCorrects &&
+    Number.isFinite(student.areaCorrects[area.code]) &&
+    !hasAreaResponses
+  );
 }
 
 function scoreScaleValue(score, minScore = 700, maxScore = 1300) {
@@ -806,8 +853,11 @@ function setBar(element, score) {
 function normalizeStudent(raw) {
   const eventInfo = normalizeEventAndYear(raw.event, raw.year);
   const scores = { global: Number(raw.scores?.global) || 0 };
+  const areaCorrects = {};
   currentAreas().forEach((area) => {
     scores[area.code] = Number(raw.scores?.[area.code]) || 0;
+    const correct = Number(raw.areaCorrects?.[area.code]);
+    if (Number.isFinite(correct)) areaCorrects[area.code] = correct;
   });
   return {
     id: raw.id,
@@ -820,7 +870,9 @@ function normalizeStudent(raw) {
     grade: raw.grade || "",
     group: raw.group || "",
     scores,
+    areaCorrects,
     responses: Array.isArray(raw.responses) ? raw.responses : [],
+    captureSource: raw.captureSource || "",
   };
 }
 
@@ -927,6 +979,9 @@ function setActiveView(viewName) {
   if (viewName === "capture") {
     setTimeout(() => focusQuestion(1), 0);
   }
+  if (viewName === "score") {
+    setTimeout(() => els.areaScoreGrid?.querySelector("input")?.focus(), 0);
+  }
 }
 
 function applyPermissions() {
@@ -1028,6 +1083,9 @@ function renderExamControls() {
   if (els.saveMessage && !els.saveMessage.classList.contains("ok") && !els.saveMessage.classList.contains("error")) {
     els.saveMessage.textContent = `Lista para validar cuando captures las ${profile.questionCount} respuestas.`;
   }
+  if (els.scoreMessage && !els.scoreMessage.classList.contains("ok") && !els.scoreMessage.classList.contains("error")) {
+    els.scoreMessage.textContent = `Lista para validar cuando captures ${profile.areas.length} puntajes por area.`;
+  }
   if (els.cutoffBadge) els.cutoffBadge.textContent = profile.cutoffLabel;
   if (els.comparisonStatus) els.comparisonStatus.textContent = profile.cutoffLabel;
   if (els.printExamName) els.printExamName.textContent = `Reporte de resultados ${profile.title}`;
@@ -1045,9 +1103,11 @@ async function changeExam(examId) {
   buildAnswersGrid();
   renderAreaCards();
   renderCaptureAreaSummary();
+  renderAreaScoreCapture();
   renderExamControls();
   updatePhotoDetectionState();
   updateCapturePreview();
+  updateAreaScorePreview();
   renderOptions();
   await loadStudents();
   renderOptions();
@@ -1086,9 +1146,35 @@ function renderCaptureAreaSummary() {
   `).join("");
 }
 
+function renderAreaScoreCapture() {
+  if (!els.areaScoreGrid || !els.scoreAreaList) return;
+  els.areaScoreGrid.innerHTML = currentAreas().map((area) => {
+    const total = area.end - area.start + 1;
+    return `
+      <label class="area-score-card" data-area="${area.code}">
+        <span class="area-score-head">
+          <b>${area.badge}</b>
+          <strong>${area.label}</strong>
+        </span>
+        <input id="scoreArea${area.code}" type="number" min="700" max="1300" step="1" inputmode="numeric" placeholder="700-1300" />
+        <small id="scoreArea${area.code}Help">0/${total} aciertos estimados</small>
+      </label>
+    `;
+  }).join("");
+
+  els.scoreAreaList.innerHTML = currentAreas().map((area) => `
+    <p>
+      <span>${area.badge} <small id="score${area.badge}Correct">0/${area.end - area.start + 1}</small></span>
+      <strong id="score${area.badge}Score">-</strong>
+    </p>
+  `).join("");
+}
+
 function renderCaptureLists() {
   const currentCareer = els.captureCareer.value;
   const currentEvent = els.captureEvent.value;
+  const currentScoreCareer = els.scoreCareer?.value || "";
+  const currentScoreEvent = els.scoreEvent?.value || "";
   const careers = currentExamId === "exani1"
     ? [...currentCareerOptions()]
     : [...currentCareerOptions()].sort((a, b) => a.localeCompare(b, "es"));
@@ -1098,6 +1184,14 @@ function renderCaptureLists() {
     .join("");
   if (careers.includes(currentCareer)) {
     els.captureCareer.value = currentCareer;
+  }
+  if (els.scoreCareer) {
+    els.scoreCareer.innerHTML = `<option value="">${label}</option>` + careers
+      .map((career) => `<option value="${career}">${career}</option>`)
+      .join("");
+    if (careers.includes(currentScoreCareer)) {
+      els.scoreCareer.value = currentScoreCareer;
+    }
   }
 
   const events = allEvents();
@@ -1110,7 +1204,18 @@ function renderCaptureLists() {
   } else if (lastCaptureEvent && events.includes(lastCaptureEvent)) {
     els.captureEvent.value = lastCaptureEvent;
   }
+  if (els.scoreEvent) {
+    els.scoreEvent.innerHTML = `<option value="">Selecciona evento</option>` + events
+      .map((event) => `<option value="${escapeHtml(event)}">${escapeHtml(event)}</option>`)
+      .join("");
+    if (events.includes(currentScoreEvent)) {
+      els.scoreEvent.value = currentScoreEvent;
+    } else if (lastCaptureEvent && events.includes(lastCaptureEvent)) {
+      els.scoreEvent.value = lastCaptureEvent;
+    }
+  }
   els.captureYear.value = "2026";
+  if (els.scoreYear && !els.scoreYear.value) els.scoreYear.value = "2026";
 }
 
 function renderStudentOptions(preferredStudentId = "") {
@@ -1526,7 +1631,8 @@ function renderReport(studentId) {
   );
 
   els.studentName.textContent = student.name;
-  els.studentMeta.textContent = `${student.career} | ${student.event} | ${student.year}`;
+  const sourceNote = student.captureSource === "puntajes_area" ? " | aciertos estimados" : "";
+  els.studentMeta.textContent = `${student.career} | ${student.event} | ${student.year}${sourceNote}`;
   els.globalScore.textContent = formatScore(student.scores.global);
   if (els.accuracyScore) {
     els.accuracyScore.textContent = formatPercentScore(studentAccuracyPercent(student), 1);
@@ -1567,9 +1673,12 @@ function renderReport(studentId) {
   currentAreas().forEach((area) => {
     const areaDelta = student.scores[area.code] - areaAverages[area.code];
     const areaCorrect = studentAreaCorrect(student, area);
+    const estimated = studentAreaCorrectIsEstimated(student, area);
     const areaTotal = area.end - area.start + 1;
     document.querySelector(`#${areaElementId(area, "Score")}`).textContent = formatScore(student.scores[area.code]);
-    document.querySelector(`#${areaElementId(area, "Correct")}`).textContent = areaCorrect === null ? "- aciertos" : `${areaCorrect}/${areaTotal} aciertos`;
+    document.querySelector(`#${areaElementId(area, "Correct")}`).textContent = areaCorrect === null
+      ? "- aciertos"
+      : `${areaCorrect}/${areaTotal} ${estimated ? "aciertos est." : "aciertos"}`;
     document.querySelector(`#${areaElementId(area, "Average")}`).textContent = formatScore(areaAverages[area.code]);
     document.querySelector(`#${areaElementId(area, "Delta")}`).textContent = formatAreaDelta(areaDelta);
     document.querySelector(`#${areaElementId(area, "Compare")}`).className = `area-compare ${areaDelta > 0 ? "positive" : areaDelta < 0 ? "negative" : "neutral"}`;
@@ -1644,11 +1753,12 @@ function renderPrintReport(context) {
   if (els.printAreaRows) {
     els.printAreaRows.innerHTML = currentAreas().map((area) => {
       const correct = studentAreaCorrect(student, area);
+      const estimated = studentAreaCorrectIsEstimated(student, area);
       const total = area.end - area.start + 1;
       return `
         <tr>
           <th>${area.label}</th>
-          <td>${correct === null ? "-" : `${correct}/${total}`}</td>
+          <td>${correct === null ? "-" : `${correct}/${total}${estimated ? " est." : ""}`}</td>
           <td>${formatScore(student.scores[area.code])}</td>
         </tr>
       `;
@@ -1868,6 +1978,90 @@ function clearCaptureAnswers() {
   els.answersGrid.querySelectorAll(".answer-item").forEach((item) => item.classList.remove("answered"));
 }
 
+function getAreaScoreValues() {
+  const areaScores = {};
+  currentAreas().forEach((area) => {
+    const input = document.querySelector(`#scoreArea${area.code}`);
+    const raw = input?.value.trim() || "";
+    const score = raw ? Number(raw) : NaN;
+    if (Number.isFinite(score)) areaScores[area.code] = Math.round(score);
+  });
+  return areaScores;
+}
+
+function calculateAreaScoreCapture() {
+  const areaScores = getAreaScoreValues();
+  const areaCorrects = {};
+  let captured = 0;
+  let correct = 0;
+  let scoreTotal = 0;
+
+  currentAreas().forEach((area) => {
+    const score = areaScores[area.code];
+    const total = area.end - area.start + 1;
+    if (Number.isFinite(score) && score >= 700 && score <= 1300) {
+      const estimatedCorrect = scoreToEstimatedCorrect(score, total);
+      areaCorrects[area.code] = estimatedCorrect;
+      correct += estimatedCorrect;
+      scoreTotal += score;
+      captured++;
+    }
+  });
+
+  const complete = captured === currentAreas().length;
+  const global = complete ? Math.round(scoreTotal / currentAreas().length) : 0;
+  return { areaScores, areaCorrects, captured, correct, global, complete };
+}
+
+function updateAreaScorePreview() {
+  if (!els.scoreForm) return { complete: false, fieldsReady: false };
+  const preview = calculateAreaScoreCapture();
+
+  currentAreas().forEach((area) => {
+    const score = preview.areaScores[area.code];
+    const total = area.end - area.start + 1;
+    const validScore = Number.isFinite(score) && score >= 700 && score <= 1300;
+    const correct = validScore ? preview.areaCorrects[area.code] : 0;
+    const scoreElement = document.querySelector(`#score${area.badge}Score`);
+    const correctElement = document.querySelector(`#score${area.badge}Correct`);
+    const helpElement = document.querySelector(`#scoreArea${area.code}Help`);
+    if (scoreElement) scoreElement.textContent = validScore ? formatScore(score) : "-";
+    if (correctElement) correctElement.textContent = `${correct}/${total}`;
+    if (helpElement) {
+      helpElement.textContent = validScore
+        ? `${correct}/${total} aciertos estimados`
+        : `Captura un puntaje entre 700 y 1300`;
+    }
+  });
+
+  els.scoreAreaCount.textContent = `${preview.captured}/${currentAreas().length}`;
+  els.scoreCorrectCount.textContent = preview.captured ? String(preview.correct) : "-";
+  els.scoreGlobalScore.textContent = preview.complete ? formatScore(preview.global) : "-";
+  els.scoreStatus.textContent = preview.complete
+    ? `${preview.correct} aciertos estimados`
+    : `Faltan ${currentAreas().length - preview.captured} areas`;
+
+  const fieldsReady = Boolean(
+    els.scoreName.value.trim() &&
+    els.scoreCareer.value &&
+    els.scoreEvent.value.trim() &&
+    els.scoreYear.value &&
+    els.scoreVersion.value.trim()
+  );
+  els.saveScoreButton.disabled = !(preview.complete && fieldsReady);
+  return { ...preview, fieldsReady };
+}
+
+function clearAreaScoreForm() {
+  els.scoreForm.reset();
+  els.scoreYear.value = "2026";
+  els.scoreVersion.value = "1";
+  els.scorePostSaveActions.hidden = true;
+  els.scoreMessage.className = "save-message";
+  els.scoreMessage.textContent = `Lista para validar cuando captures ${currentAreas().length} puntajes por area.`;
+  updateAreaScorePreview();
+}
+
 function focusQuestion(question) {
   const target = els.answersGrid.querySelector(`[data-question="${question}"]`);
   if (target) target.focus();
@@ -1933,6 +2127,98 @@ function capturePayload() {
     responses: preview.responses,
     ...captureMetadata(),
   };
+}
+
+function areaScorePayload() {
+  const preview = updateAreaScorePreview();
+  return {
+    exam: currentExamId,
+    name: els.scoreName.value.trim().toUpperCase(),
+    email: els.scoreEmail.value.trim(),
+    career: els.scoreCareer.value,
+    event: els.scoreEvent.value.trim(),
+    year: els.scoreYear.value.trim(),
+    version: els.scoreVersion.value.trim(),
+    areaScores: preview.areaScores,
+    areaCorrects: preview.areaCorrects,
+    ...captureMetadata("puntajes_area"),
+  };
+}
+
+async function saveAreaScoreCapture(event) {
+  event.preventDefault();
+  const apiUrl = window.SIMULADORES_CONFIG?.apiUrl?.trim();
+  if (!apiUrl) {
+    els.scoreMessage.className = "save-message error";
+    els.scoreMessage.textContent = "Falta configurar apiUrl en config.js.";
+    return;
+  }
+
+  const preview = updateAreaScorePreview();
+  if (!preview.complete || !preview.fieldsReady) {
+    els.scoreMessage.className = "save-message error";
+    els.scoreMessage.textContent = "Completa datos del alumno y los puntajes por area antes de guardar.";
+    return;
+  }
+
+  const payload = areaScorePayload();
+  const duplicate = findDuplicateCapture(payload);
+  if (duplicate) {
+    const proceed = window.confirm(`Ya existe una captura para ${duplicate.name} en ${duplicate.event} (${duplicate.year}). Â¿Quieres guardar otro intento de todos modos?`);
+    if (!proceed) {
+      els.scoreMessage.className = "save-message error";
+      els.scoreMessage.textContent = "Guardado cancelado para evitar duplicado.";
+      return;
+    }
+  }
+
+  els.saveScoreButton.disabled = true;
+  els.scorePostSaveActions.hidden = true;
+  els.scoreMessage.className = "save-message";
+  els.scoreMessage.textContent = "Guardando puntajes en Google Sheets...";
+
+  try {
+    const result = await appendCapturePayload(payload);
+    if (!result.ok) throw new Error(result.error || "No se pudo guardar");
+
+    els.scoreMessage.className = "save-message ok";
+    els.scoreMessage.textContent = `Guardado en Captura fila ${result.sourceRow}.`;
+    lastSavedStudentId = result.id;
+    lastSavedCapture = {
+      id: result.id,
+      sourceRow: Number(result.sourceRow) || 0,
+      name: payload.name,
+      event: payload.event,
+      year: payload.year,
+    };
+    lastCaptureEvent = payload.event;
+    els.scorePostSaveActions.hidden = false;
+
+    await loadStudents();
+    renderOptions();
+  } catch (error) {
+    els.scoreMessage.className = "save-message error";
+    els.scoreMessage.textContent = `${error.message}. Si acabas de actualizar Code.gs, publica una nueva version del Apps Script.`;
+    updateAreaScorePreview();
+  }
+}
+
+function newScoreSameEvent() {
+  const event = lastCaptureEvent || els.scoreEvent.value.trim();
+  clearAreaScoreForm();
+  els.scoreEvent.value = event;
+  els.scorePostSaveActions.hidden = true;
+  updateAreaScorePreview();
+  setActiveView("score");
+  els.areaScoreGrid?.querySelector("input")?.focus();
+}
+
+function newBlankScoreCapture() {
+  lastSavedStudentId = "";
+  lastSavedCapture = null;
+  clearAreaScoreForm();
+  setActiveView("score");
+  els.scoreName.focus();
 }
 
 function findSavedStudent(capture = lastSavedCapture) {
@@ -2806,6 +3092,13 @@ els.clearCaptureButton.addEventListener("click", clearCaptureForm);
 els.viewSavedReportButton.addEventListener("click", showSavedReport);
 els.sameEventButton.addEventListener("click", newCaptureSameEvent);
 els.newCaptureButton.addEventListener("click", newBlankCapture);
+els.scoreForm.addEventListener("input", updateAreaScorePreview);
+els.scoreForm.addEventListener("change", updateAreaScorePreview);
+els.scoreForm.addEventListener("submit", saveAreaScoreCapture);
+els.clearScoreButton.addEventListener("click", clearAreaScoreForm);
+els.scoreViewSavedReportButton.addEventListener("click", showSavedReport);
+els.scoreSameEventButton.addEventListener("click", newScoreSameEvent);
+els.scoreNewCaptureButton.addEventListener("click", newBlankScoreCapture);
 els.photoInput.addEventListener("change", handlePhotoUpload);
 els.clearPhotoButton.addEventListener("click", clearPhoto);
 els.detectAnswersButton.addEventListener("click", detectAnswersFromPhoto);
@@ -2832,6 +3125,7 @@ async function init() {
   renderExamControls();
   renderAreaCards();
   renderCaptureAreaSummary();
+  renderAreaScoreCapture();
   buildAnswersGrid();
   await loadStudents();
   renderOptions();
@@ -2840,6 +3134,7 @@ async function init() {
   renderBatchList();
   updateBatchSummary();
   updateCapturePreview();
+  updateAreaScorePreview();
 }
 
 init();

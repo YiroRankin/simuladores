@@ -290,7 +290,10 @@ function appendCapture_(params, rawBody) {
     }
 
     const nextIndex = Math.max(1, targetRow - 3);
-    const numericResponses = payload.responses.map(toAnswerNumber_);
+    const scoreCapture = isAreaScoreCapture_(payload, config);
+    const numericResponses = scoreCapture
+      ? Array(config.questionCount).fill("")
+      : payload.responses.map(toAnswerNumber_);
     const capturaRow = [
       nextIndex,
       payload.name,
@@ -305,11 +308,15 @@ function appendCapture_(params, rawBody) {
       payload.campus || payload.capturedBy || "",
       new Date(),
       payload.captureSource || "captura_manual"
-    ]);
+    ], buildCaptureExtraValues_(payload, config));
 
-    captura.getRange(targetRow, 1, 1, 12 + config.questionCount).setValues([capturaRow]);
+    captura.getRange(targetRow, 1, 1, captureColumnCount_(config)).setValues([capturaRow]);
     if (claves && resultados && config.id === "exani2") {
-      setFormulaRows_(claves, resultados, targetRow);
+      if (scoreCapture) {
+        setDirectResultRow_(claves, resultados, targetRow, payload, config);
+      } else {
+        setFormulaRows_(claves, resultados, targetRow);
+      }
     }
 
     SpreadsheetApp.flush();
@@ -503,8 +510,20 @@ function parseCapturePayload_(params, rawBody) {
     capturedRole: cleanText_(params.capturedRole),
     capturedAt: cleanText_(params.capturedAt),
     captureSource: cleanText_(params.captureSource || params.source),
-    responses: String(params.responses || "").split(",")
+    responses: String(params.responses || "").split(","),
+    areaScores: parseObjectParam_(params.areaScores),
+    areaCorrects: parseObjectParam_(params.areaCorrects)
   };
+}
+
+function parseObjectParam_(value) {
+  if (!value) return {};
+  if (typeof value === "object") return value;
+  try {
+    return JSON.parse(value);
+  } catch (error) {
+    return {};
+  }
 }
 
 function parseEventPayload_(params, rawBody) {
@@ -535,12 +554,16 @@ function validateCapturePayload_(payload, config) {
   payload.capturedBy = cleanText_(payload.capturedBy || "Sin identificar");
   payload.capturedRole = cleanText_(payload.capturedRole);
   payload.captureSource = cleanText_(payload.captureSource || payload.source || "captura_manual");
+  payload.areaScores = payload.areaScores || {};
+  payload.areaCorrects = payload.areaCorrects || {};
 
   if (!payload.name) throw new Error("Falta nombre");
   if (!payload.career) throw new Error("Falta carrera");
   if (config.careers.indexOf(payload.career) < 0) throw new Error("Carrera fuera del catálogo configurado: " + payload.career);
   if (!payload.event) throw new Error("Falta evento");
   if (SHEET_YEARS.indexOf(payload.year) < 0) throw new Error("Año fuera del catálogo del Sheet: " + payload.year + ". Usa 2021, 2022, 2023, 2024, 2025 o 2026.");
+  if (normalizeAreaScorePayload_(payload, config)) return;
+
   if (!Array.isArray(payload.responses) || payload.responses.length !== config.questionCount) {
     throw new Error("Deben existir " + config.questionCount + " respuestas");
   }
@@ -550,6 +573,66 @@ function validateCapturePayload_(payload, config) {
   if (missing >= 0) {
     throw new Error("Respuesta inválida o vacía en pregunta " + (missing + 1));
   }
+}
+
+function normalizeAreaScorePayload_(payload, config) {
+  const rawScores = payload.areaScores || {};
+  const hasAnyScore = config.areas.some(function(area) {
+    return rawScores[area.code] !== undefined && rawScores[area.code] !== "";
+  });
+  if (!hasAnyScore) return false;
+
+  const areaScores = {};
+  const areaCorrects = {};
+  config.areas.forEach(function(area) {
+    const score = Math.round(toNumber_(rawScores[area.code]));
+    if (!score || score < 700 || score > 1300) {
+      throw new Error("El puntaje de " + area.code.toUpperCase() + " debe estar entre 700 y 1300");
+    }
+    const total = area.end - area.start + 1;
+    areaScores[area.code] = score;
+    areaCorrects[area.code] = scoreToEstimatedCorrect_(score, total);
+  });
+
+  payload.areaScores = areaScores;
+  payload.areaCorrects = areaCorrects;
+  payload.responses = [];
+  payload.captureSource = "puntajes_area";
+  return true;
+}
+
+function isAreaScoreCapture_(payload, config) {
+  const scores = payload && payload.areaScores;
+  return Boolean(scores && config.areas.every(function(area) {
+    return Number(scores[area.code]) >= 700 && Number(scores[area.code]) <= 1300;
+  }));
+}
+
+function scoreToEstimatedCorrect_(score, total) {
+  const pct = Math.max(0, Math.min(1, (Number(score) - 700) / 600));
+  return Math.round(pct * total);
+}
+
+function buildCaptureExtraValues_(payload, config) {
+  const values = [isAreaScoreCapture_(payload, config) ? "puntajes_area" : "respuestas"];
+  config.areas.forEach(function(area) {
+    values.push(payload.areaCorrects && payload.areaCorrects[area.code] !== undefined ? payload.areaCorrects[area.code] : "");
+    values.push(payload.areaScores && payload.areaScores[area.code] !== undefined ? payload.areaScores[area.code] : "");
+  });
+  return values;
+}
+
+function captureExtraHeaders_(config) {
+  const headers = ["Modo captura"];
+  config.areas.forEach(function(area) {
+    headers.push(area.code.toUpperCase() + " aciertos estimados");
+    headers.push(area.code.toUpperCase() + " puntaje");
+  });
+  return headers;
+}
+
+function captureColumnCount_(config) {
+  return 12 + config.questionCount + captureExtraHeaders_(config).length;
 }
 
 function setFormulaRows_(claves, resultados, capturaRow) {
@@ -584,21 +667,65 @@ function setFormulaRows_(claves, resultados, capturaRow) {
   resultados.getRange(formulaRow, 1, 1, 14).setFormulas([resultFormulas]);
 }
 
+function setDirectResultRow_(claves, resultados, capturaRow, payload, config) {
+  const formulaRow = capturaRow + 1;
+  if (claves) claves.getRange(formulaRow, 1, 1, 62).clearContent();
+
+  const areaCorrects = config.areas.map(function(area) {
+    return payload.areaCorrects[area.code];
+  });
+  const areaScores = config.areas.map(function(area) {
+    return payload.areaScores[area.code];
+  });
+  const global = Math.round(areaScores.reduce(function(sum, score) {
+    return sum + score;
+  }, 0) / areaScores.length);
+  const icneValues = areaScores.map(function(score) {
+    return (score - 1000) / 100;
+  });
+
+  const resultValues = [
+    payload.email || "",
+    payload.name,
+    areaCorrects[0] !== undefined ? areaCorrects[0] : "",
+    areaCorrects[1] !== undefined ? areaCorrects[1] : "",
+    areaCorrects[2] !== undefined ? areaCorrects[2] : "",
+    "",
+    areaScores[0] !== undefined ? areaScores[0] : "",
+    areaScores[1] !== undefined ? areaScores[1] : "",
+    areaScores[2] !== undefined ? areaScores[2] : "",
+    global,
+    "",
+    icneValues[0] !== undefined ? icneValues[0] : "",
+    icneValues[1] !== undefined ? icneValues[1] : "",
+    icneValues[2] !== undefined ? icneValues[2] : ""
+  ];
+
+  resultados.getRange(formulaRow, 1, 1, 14).setValues([resultValues]);
+}
+
 function ensureRows_(sheet, row) {
   if (sheet.getMaxRows() < row) {
     sheet.insertRowsAfter(sheet.getMaxRows(), row - sheet.getMaxRows());
   }
 }
 
+function ensureColumns_(sheet, column) {
+  if (sheet.getMaxColumns() < column) {
+    sheet.insertColumnsAfter(sheet.getMaxColumns(), column - sheet.getMaxColumns());
+  }
+}
+
 function prepareCaptureRow_(sheet, row, config) {
-  sheet.getRange(row, 1, 1, 12 + config.questionCount).clearDataValidations();
+  ensureColumns_(sheet, captureColumnCount_(config));
+  sheet.getRange(row, 1, 1, captureColumnCount_(config)).clearDataValidations();
 }
 
 function rollbackCaptureWrite_(captura, claves, resultados, targetRow, config) {
   if (!captura || !targetRow || !config) return;
 
   try {
-    captura.getRange(targetRow, 1, 1, 12 + config.questionCount).clearContent();
+    captura.getRange(targetRow, 1, 1, captureColumnCount_(config)).clearContent();
     if (config.id === "exani2") {
       const formulaRow = targetRow + 1;
       if (claves) claves.getRange(formulaRow, 1, 1, 62).clearContent();
@@ -646,7 +773,8 @@ function buildPayload_(params) {
   const key = getAnswerKey_(spreadsheet, config);
   const lastRow = captura.getLastRow();
   const rowCount = Math.max(0, lastRow - 3);
-  const capturaRows = rowCount ? captura.getRange(4, 1, rowCount, 12 + config.questionCount).getValues() : [];
+  const readColumns = Math.max(12 + config.questionCount, Math.min(captureColumnCount_(config), captura.getLastColumn()));
+  const capturaRows = rowCount ? captura.getRange(4, 1, rowCount, readColumns).getValues() : [];
 
   const students = capturaRows
     .map(function(row, index) {
@@ -654,7 +782,8 @@ function buildPayload_(params) {
       if (!name) return null;
 
       const responses = row.slice(9, 9 + config.questionCount).map(toAnswerLetter_);
-      const scores = scoreResponses_(responses, key, config);
+      const scoreCapture = readAreaScoreCapture_(row, config);
+      const scores = scoreCapture ? scoreCapture.scores : scoreResponses_(responses, key, config);
       const global = scores.global;
       if (!global) return null;
 
@@ -675,6 +804,7 @@ function buildPayload_(params) {
         capturedAt: row[10 + config.questionCount],
         captureSource: cleanText_(row[11 + config.questionCount]),
         scores: scores,
+        areaCorrects: scoreCapture ? scoreCapture.areaCorrects : {},
         responses: responses
       };
     })
@@ -719,6 +849,10 @@ function ensureCaptureHeader_(sheet, config) {
     headers.push("P" + i);
   }
   headers.push("Campus", "Fecha captura", "Fuente");
+  captureExtraHeaders_(config).forEach(function(header) {
+    headers.push(header);
+  });
+  ensureColumns_(sheet, headers.length);
   sheet.getRange(3, 1, 1, headers.length).setValues([headers]);
 }
 
@@ -768,6 +902,41 @@ function getAnswerKey_(spreadsheet, config) {
     if (values.filter(Boolean).length === config.questionCount) return values;
   }
   return config.defaultKey.split("").map(toAnswerLetter_);
+}
+
+function readAreaScoreCapture_(row, config) {
+  const modeIndex = 12 + config.questionCount;
+  const sourceIndex = 11 + config.questionCount;
+  let offset = 0;
+  if (normalizeKey_(row[modeIndex]) === "puntajes_area") {
+    offset = modeIndex + 1;
+  } else if (normalizeKey_(row[sourceIndex]) === "puntajes_area") {
+    offset = modeIndex;
+  } else {
+    return null;
+  }
+
+  const scores = {};
+  const areaCorrects = {};
+  let totalScore = 0;
+  const firstValue = toNumber_(row[offset]);
+  const secondValue = toNumber_(row[offset + 1]);
+  const firstAreaTotal = config.areas[0].end - config.areas[0].start + 1;
+  const pairedCorrectScoreLayout = firstValue <= firstAreaTotal && secondValue >= 700;
+
+  for (var i = 0; i < config.areas.length; i++) {
+    const area = config.areas[i];
+    const total = area.end - area.start + 1;
+    const correct = pairedCorrectScoreLayout ? toNumber_(row[offset]) : "";
+    const score = pairedCorrectScoreLayout ? toNumber_(row[offset + 1]) : toNumber_(row[offset]);
+    if (!score || score < 700 || score > 1300) return null;
+    scores[area.code] = score;
+    areaCorrects[area.code] = correct !== "" ? correct : scoreToEstimatedCorrect_(score, total);
+    totalScore += score;
+    offset += pairedCorrectScoreLayout ? 2 : 1;
+  }
+  scores.global = Math.round(totalScore / config.areas.length);
+  return { scores: scores, areaCorrects: areaCorrects };
 }
 
 function scoreResponses_(responses, key, config) {
