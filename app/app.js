@@ -60,6 +60,7 @@ let batchItems = [];
 let customEvents = [];
 let eventCatalog = [];
 let captureSource = "captura_manual";
+const areaScoreCacheKey = "simuladoresAreaScoreCaptures:v1";
 
 const roleModules = {
   administrador: ["report", "capture", "score", "batch", "photo", "base"],
@@ -851,6 +852,67 @@ function setBar(element, score) {
   element.style.width = `${pct}%`;
 }
 
+function areaScoreCacheKeys(capture) {
+  const keys = [];
+  if (capture?.sourceRow) keys.push(`row:${capture.sourceRow}`);
+  const name = normalizeText(capture?.name);
+  const event = normalizeText(capture?.event);
+  const year = normalizeText(capture?.year);
+  if (name && event && year) keys.push(`student:${name}|${event}|${year}`);
+  return keys;
+}
+
+function readAreaScoreCache() {
+  try {
+    return JSON.parse(localStorage.getItem(areaScoreCacheKey) || "{}");
+  } catch (error) {
+    return {};
+  }
+}
+
+function writeAreaScoreCacheEntry(capture) {
+  const keys = areaScoreCacheKeys(capture);
+  if (!keys.length) return;
+  const cache = readAreaScoreCache();
+  const entry = {
+    name: capture.name,
+    event: capture.event,
+    year: capture.year,
+    sourceRow: capture.sourceRow || 0,
+    scores: capture.scores,
+    areaCorrects: capture.areaCorrects,
+    savedAt: new Date().toISOString(),
+  };
+  keys.forEach((key) => {
+    cache[key] = entry;
+  });
+  try {
+    localStorage.setItem(areaScoreCacheKey, JSON.stringify(cache));
+  } catch (error) {
+    console.warn("No se pudo guardar cache local de puntajes por area.", error);
+  }
+}
+
+function cachedAreaScoreEntry(student) {
+  const cache = readAreaScoreCache();
+  const keys = areaScoreCacheKeys(student);
+  for (const key of keys) {
+    if (cache[key]) return cache[key];
+  }
+  return null;
+}
+
+function applyCachedAreaScoreCapture(student) {
+  const entry = cachedAreaScoreEntry(student);
+  if (!entry || !entry.scores) return student;
+  return {
+    ...student,
+    scores: { ...student.scores, ...entry.scores },
+    areaCorrects: { ...student.areaCorrects, ...entry.areaCorrects },
+    captureSource: student.captureSource || "puntajes_area",
+  };
+}
+
 function normalizeStudent(raw) {
   const eventInfo = normalizeEventAndYear(raw.event, raw.year);
   const scores = { global: Number(raw.scores?.global) || 0 };
@@ -860,7 +922,7 @@ function normalizeStudent(raw) {
     const correct = Number(raw.areaCorrects?.[area.code]);
     if (Number.isFinite(correct)) areaCorrects[area.code] = correct;
   });
-  return {
+  return applyCachedAreaScoreCapture({
     id: raw.id,
     exam: raw.exam || raw.examId || currentExamId,
     sourceRow: Number(raw.sourceRow) || 0,
@@ -874,7 +936,7 @@ function normalizeStudent(raw) {
     areaCorrects,
     responses: Array.isArray(raw.responses) ? raw.responses : [],
     captureSource: raw.captureSource || "",
-  };
+  });
 }
 
 function normalizeEventAndYear(eventValue, yearValue) {
@@ -2014,22 +2076,6 @@ function calculateAreaScoreCapture() {
   return { areaScores, areaCorrects, captured, correct, global, complete };
 }
 
-function wrongAnswerFor(correctAnswer) {
-  return ["A", "B", "C"].find((letter) => letter !== correctAnswer) || "A";
-}
-
-function estimatedResponsesFromAreaScores(areaCorrects) {
-  return Array.from({ length: currentQuestionCount() }, (_, index) => {
-    const question = index + 1;
-    const area = currentAreas().find((item) => question >= item.start && question <= item.end);
-    if (!area) return "";
-    const areaIndex = question - area.start;
-    const correctLimit = Number(areaCorrects[area.code]) || 0;
-    const keyAnswer = answerKey[index] || currentProfile().key[index] || "A";
-    return areaIndex < correctLimit ? keyAnswer : wrongAnswerFor(keyAnswer);
-  });
-}
-
 function updateAreaScorePreview() {
   if (!els.scoreForm) return { complete: false, fieldsReady: false };
   const preview = calculateAreaScoreCapture();
@@ -2156,11 +2202,21 @@ function areaScorePayload() {
     event: els.scoreEvent.value.trim(),
     year: els.scoreYear.value.trim(),
     version: els.scoreVersion.value.trim(),
-    responses: estimatedResponsesFromAreaScores(preview.areaCorrects),
     areaScores: preview.areaScores,
     areaCorrects: preview.areaCorrects,
     ...captureMetadata("puntajes_area"),
   };
+}
+
+function scoresFromAreaScoreCapture(areaScores) {
+  const scores = {};
+  let total = 0;
+  currentAreas().forEach((area) => {
+    scores[area.code] = Number(areaScores[area.code]) || 0;
+    total += scores[area.code];
+  });
+  scores.global = Math.round(total / currentAreas().length);
+  return scores;
 }
 
 async function saveAreaScoreCapture(event) {
@@ -2209,6 +2265,11 @@ async function saveAreaScoreCapture(event) {
       event: payload.event,
       year: payload.year,
     };
+    writeAreaScoreCacheEntry({
+      ...lastSavedCapture,
+      scores: scoresFromAreaScoreCapture(payload.areaScores),
+      areaCorrects: payload.areaCorrects,
+    });
     lastCaptureEvent = payload.event;
     els.scorePostSaveActions.hidden = false;
 
