@@ -181,7 +181,7 @@ const examProfiles = {
     photoDetection: true,
     key: "CBBBCCBACCABAAAAACBBACBABBCCAABBCABBBABACBBCCACCBBBACBCCBAAC".split(""),
     areas: [
-      { code: "ri", label: "Redaccion indirecta", badge: "RI", start: 1, end: 20, icon: "./assets/insignia-ri.png" },
+      { code: "ri", label: "Redacción indirecta", badge: "RI", start: 1, end: 20, icon: "./assets/insignia-ri.png" },
       { code: "cl", label: "Comprensión lectora", badge: "CL", start: 21, end: 40, icon: "./assets/insignia-cl.png" },
       { code: "pm", label: "Pensamiento matemático", badge: "PM", start: 41, end: 60, icon: "./assets/insignia-pm.png" },
     ],
@@ -889,7 +889,7 @@ function writeAreaScoreCacheEntry(capture) {
   try {
     localStorage.setItem(areaScoreCacheKey, JSON.stringify(cache));
   } catch (error) {
-    console.warn("No se pudo guardar cache local de puntajes por area.", error);
+    console.warn("No se pudo guardar caché local de puntajes por área.", error);
   }
 }
 
@@ -1147,7 +1147,7 @@ function renderExamControls() {
     els.saveMessage.textContent = `Lista para validar cuando captures las ${profile.questionCount} respuestas.`;
   }
   if (els.scoreMessage && !els.scoreMessage.classList.contains("ok") && !els.scoreMessage.classList.contains("error")) {
-    els.scoreMessage.textContent = `Lista para validar cuando captures ${profile.areas.length} puntajes por area.`;
+    els.scoreMessage.textContent = `Lista para validar cuando captures ${profile.areas.length} puntajes por área.`;
   }
   if (els.cutoffBadge) els.cutoffBadge.textContent = profile.cutoffLabel;
   if (els.comparisonStatus) els.comparisonStatus.textContent = profile.cutoffLabel;
@@ -1448,8 +1448,8 @@ function renderBaseReport() {
     `El evento ${eventName} concentra ${eventStudents.length} alumnos con promedio de aciertos de ${formatPercentScore(avgAccuracy)}. ` +
     `La fortaleza academica del grupo es ${strongest.label} (${formatPercentScore(strongest.average)}) y el foco prioritario es ${weakest.label} (${formatPercentScore(weakest.average)}). ` +
     (withCutoff.length
-      ? `${competitiveOrHigh.length} alumnos estan en nivel competitivo o alto; ${priorityStudents.length} requieren seguimiento academico cercano.`
-      : `${priorityStudents.length} alumnos requieren seguimiento academico cercano segun porcentaje de aciertos y desempeno por area.`);
+      ? `${competitiveOrHigh.length} alumnos están en nivel competitivo o alto; ${priorityStudents.length} requieren seguimiento académico cercano.`
+      : `${priorityStudents.length} alumnos requieren seguimiento académico cercano según porcentaje de aciertos y desempeño por área.`);
 
   els.baseHighlightStrip.innerHTML = [
     { label: "Fortaleza", value: strongest.label, tone: "ok" },
@@ -1587,7 +1587,7 @@ function renderBaseRecommendations(eventStudents, weakestArea, priorityStudents,
         : `Mantener seguimiento preventivo; no hay alumnos en prioridad critica con la regla actual.`,
     },
     {
-      title: "Trabajo por area",
+      title: "Trabajo por área",
       text: `Usar ${weakestArea.label} como foco comun del siguiente taller o retroalimentacion grupal.`,
     },
     {
@@ -1598,7 +1598,7 @@ function renderBaseRecommendations(eventStudents, weakestArea, priorityStudents,
     },
     {
       title: "Indicador comercial",
-      text: `${formatPercentScore(competitiveHighPct)} de alumnos esta en nivel competitivo o alto; esto permite presentar avance academico y casos de oportunidad.`,
+      text: `${formatPercentScore(competitiveHighPct)} de alumnos está en nivel competitivo o alto; esto permite presentar avance académico y casos de oportunidad.`,
     },
   ];
 
@@ -1666,7 +1666,7 @@ function renderEmptyReport() {
   els.cutoffMessage.textContent = "No hay alumnos que coincidan con el filtro actual.";
   if (els.scoreScale) renderScoreScale(els.scoreScale, { score: 700, showAccuracy: false });
   if (els.scaleStatusBadge) els.scaleStatusBadge.textContent = "-";
-  if (els.scaleSummary) els.scaleSummary.textContent = "Selecciona un alumno para ver su posicion en ambas escalas.";
+  if (els.scaleSummary) els.scaleSummary.textContent = "Selecciona un alumno para ver su posición en ambas escalas.";
   currentAreas().forEach((area) => {
     document.querySelector(`#${areaElementId(area, "Correct")}`)?.replaceChildren(document.createTextNode("- aciertos"));
     document.querySelector(`#${areaElementId(area, "Message")}`)?.replaceChildren(document.createTextNode("-"));
@@ -1741,7 +1741,7 @@ function renderReport(studentId) {
     document.querySelector(`#${areaElementId(area, "Score")}`).textContent = formatScore(student.scores[area.code]);
     document.querySelector(`#${areaElementId(area, "Correct")}`).textContent = areaCorrect === null
       ? "- aciertos"
-      : `${areaCorrect}/${areaTotal} ${estimated ? "aciertos est." : "aciertos"}`;
+      : `${areaCorrect}/${areaTotal} ${estimated ? "aciertos estimados" : "aciertos"}`;
     document.querySelector(`#${areaElementId(area, "Average")}`).textContent = formatScore(areaAverages[area.code]);
     document.querySelector(`#${areaElementId(area, "Delta")}`).textContent = formatAreaDelta(areaDelta);
     document.querySelector(`#${areaElementId(area, "Compare")}`).className = `area-compare ${areaDelta > 0 ? "positive" : areaDelta < 0 ? "negative" : "neutral"}`;
@@ -1762,13 +1762,13 @@ function renderDualScale(student) {
   const score = student.scores.global;
   const result = renderScoreScale(els.scoreScale, { score, showAccuracy: true });
   const level = score >= 1150
-    ? { label: "Verde", text: "ya muestra una posicion fuerte, pero un curso de admision ayuda a sostener la ventaja, cerrar huecos finos y llegar con estrategia al examen real." }
+    ? { label: "Verde", text: "ya muestra una posición fuerte, pero un curso de admisión ayuda a sostener la ventaja, cerrar huecos finos y llegar con estrategia al examen real." }
     : score >= 1000
-      ? { label: "Amarillo", text: "hay una base competitiva, pero todavia existe margen claro de crecimiento; con preparacion guiada puede convertir ese avance en una candidatura mas solida." }
-      : { label: "Rojo", text: "este resultado muestra areas que conviene atender pronto; un curso de admision puede ordenar el estudio, reforzar bases y acelerar la mejora antes del siguiente simulador." };
+      ? { label: "Amarillo", text: "hay una base competitiva, pero todavía existe margen claro de crecimiento; con preparación guiada puede convertir ese avance en una candidatura más sólida." }
+      : { label: "Rojo", text: "este resultado muestra áreas que conviene atender pronto; un curso de admisión puede ordenar el estudio, reforzar bases y acelerar la mejora antes del siguiente simulador." };
 
   els.scaleStatusBadge.textContent = level.label;
-  els.scaleSummary.textContent = `${formatPercentScore(result.accuracyPercentage, 1)} de aciertos estimados equivale a un indice CENEVAL de ${formatScore(score)}. ${level.text}`;
+  els.scaleSummary.textContent = `${formatPercentScore(result.accuracyPercentage, 1)} de aciertos estimados equivale a un índice CENEVAL de ${formatScore(score)}. ${level.text}`;
 }
 
 function advisorMessageFor(student, eventDelta, cutoffDelta, weakestArea, strongestArea) {
@@ -1811,7 +1811,7 @@ function renderPrintReport(context) {
   els.printCutoffMessage.textContent = els.cutoffMessage.textContent;
   const printScale = els.printScale ? renderScoreScale(els.printScale, { score: student.scores.global, showAccuracy: true }) : null;
   if (els.printScaleMessage && printScale) {
-    els.printScaleMessage.textContent = `${formatPercentScore(printScale.accuracyPercentage, 1)} de aciertos estimados en escala 0-100. Una preparacion guiada ayuda a convertir este diagnostico en avance medible antes del examen real.`;
+    els.printScaleMessage.textContent = `${formatPercentScore(printScale.accuracyPercentage, 1)} de aciertos estimados en escala 0-100. Una preparación guiada ayuda a convertir este diagnóstico en avance medible antes del examen real.`;
   }
   if (els.printAreaRows) {
     els.printAreaRows.innerHTML = currentAreas().map((area) => {
@@ -1821,7 +1821,7 @@ function renderPrintReport(context) {
       return `
         <tr>
           <th>${area.label}</th>
-          <td>${correct === null ? "-" : `${correct}/${total}${estimated ? " est." : ""}`}</td>
+          <td>${correct === null ? "-" : `${correct}/${total}${estimated ? " estimados" : ""}`}</td>
           <td>${formatScore(student.scores[area.code])}</td>
         </tr>
       `;
@@ -2102,7 +2102,7 @@ function updateAreaScorePreview() {
   els.scoreGlobalScore.textContent = preview.complete ? formatScore(preview.global) : "-";
   els.scoreStatus.textContent = preview.complete
     ? `${preview.correct} aciertos estimados`
-    : `Faltan ${currentAreas().length - preview.captured} areas`;
+    : `Faltan ${currentAreas().length - preview.captured} áreas`;
 
   const fieldsReady = Boolean(
     els.scoreName.value.trim() &&
@@ -2121,7 +2121,7 @@ function clearAreaScoreForm() {
   els.scoreVersion.value = "1";
   els.scorePostSaveActions.hidden = true;
   els.scoreMessage.className = "save-message";
-  els.scoreMessage.textContent = `Lista para validar cuando captures ${currentAreas().length} puntajes por area.`;
+  els.scoreMessage.textContent = `Lista para validar cuando captures ${currentAreas().length} puntajes por área.`;
   updateAreaScorePreview();
 }
 
@@ -2231,7 +2231,7 @@ async function saveAreaScoreCapture(event) {
   const preview = updateAreaScorePreview();
   if (!preview.complete || !preview.fieldsReady) {
     els.scoreMessage.className = "save-message error";
-    els.scoreMessage.textContent = "Completa datos del alumno y los puntajes por area antes de guardar.";
+    els.scoreMessage.textContent = "Completa los datos del alumno y los puntajes por área antes de guardar.";
     return;
   }
 
@@ -2277,7 +2277,7 @@ async function saveAreaScoreCapture(event) {
     renderOptions();
   } catch (error) {
     els.scoreMessage.className = "save-message error";
-    els.scoreMessage.textContent = `${error.message}. Si acabas de actualizar Code.gs, publica una nueva version del Apps Script.`;
+    els.scoreMessage.textContent = `${error.message}. Si acabas de actualizar Code.gs, publica una nueva versión del Apps Script.`;
     updateAreaScorePreview();
   }
 }

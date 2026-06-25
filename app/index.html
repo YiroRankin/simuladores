@@ -88,7 +88,7 @@
       <nav class="tabs" aria-label="Módulos">
         <button class="tab active" type="button" data-tab="report">Reporte</button>
         <button class="tab" type="button" data-tab="capture">Captura</button>
-        <button class="tab" type="button" data-tab="score">Puntajes por area</button>
+        <button class="tab" type="button" data-tab="score">Puntajes por área</button>
         <button class="tab" type="button" data-tab="batch">Lote</button>
         <button class="tab" type="button" data-tab="photo">Foto de hoja</button>
         <button class="tab" type="button" data-tab="base">Base</button>
@@ -110,7 +110,7 @@
 
         <section class="kpi-grid individual-kpi-grid">
           <article class="kpi-card accent-purple">
-            <span>Indice CENEVAL</span>
+            <span>Índice CENEVAL</span>
             <strong id="globalScore">-</strong>
             <small>Escala de 700 a 1300</small>
           </article>
@@ -180,8 +180,8 @@
             <p class="card-title">Porcentaje de aciertos y escala CENEVAL</p>
             <span class="badge" id="scaleStatusBadge">-</span>
           </div>
-          <div id="scoreScale" class="dual-scale" aria-label="Equivalencia entre porcentaje de aciertos e indice CENEVAL"></div>
-          <p id="scaleSummary" class="message">Selecciona un alumno para ver su posicion en ambas escalas.</p>
+          <div id="scoreScale" class="dual-scale" aria-label="Equivalencia entre porcentaje de aciertos e índice CENEVAL"></div>
+          <p id="scaleSummary" class="message">Selecciona un alumno para ver su posición en ambas escalas.</p>
         </section>
 
         <section class="area-section">
@@ -261,7 +261,7 @@
             </div>
           </section>
           <section class="print-kpis">
-            <div><span>Indice CENEVAL</span><strong id="printGlobalScore">-</strong></div>
+            <div><span>Índice CENEVAL</span><strong id="printGlobalScore">-</strong></div>
             <div><span>Porcentaje de aciertos</span><strong id="printAccuracyScore">-</strong></div>
             <div><span>Punto de corte</span><strong id="printCutoffScore">-</strong></div>
             <div><span>Diferencia</span><strong id="printCutoffDelta">-</strong></div>
@@ -410,11 +410,11 @@
         <section class="section-heading capture-heading">
           <div>
             <p class="eyebrow">Captura por puntaje</p>
-            <h2>Calificaciones por area</h2>
-            <p class="muted">Registra el indice CENEVAL de cada area cuando no contamos con la hoja de respuestas.</p>
+            <h2>Calificaciones por área</h2>
+            <p class="muted">Registra el índice CENEVAL de cada área cuando no contamos con la hoja de respuestas.</p>
           </div>
           <div class="event-summary capture-score">
-            <span>Indice global</span>
+            <span>Índice global</span>
             <strong id="scoreGlobalScore">-</strong>
             <small id="scoreStatus">Completa los puntajes</small>
           </div>
@@ -431,15 +431,15 @@
               <input id="scoreEmail" name="email" type="email" autocomplete="email" />
             </label>
             <label>
-              <span>Carrera de interes</span>
+              <span>Carrera de interés</span>
               <select id="scoreCareer" name="career" required></select>
             </label>
             <label>
-              <span>Evento de aplicacion</span>
+              <span>Evento de aplicación</span>
               <select id="scoreEvent" name="event" required></select>
             </label>
             <label>
-              <span>Ano</span>
+              <span>Año</span>
               <select id="scoreYear" name="year" required>
                 <option value="2026">2026</option>
                 <option value="2025">2025</option>
@@ -450,7 +450,7 @@
               </select>
             </label>
             <label>
-              <span>Version</span>
+              <span>Versión</span>
               <input id="scoreVersion" name="version" type="text" value="1" required />
             </label>
           </section>
@@ -468,7 +468,7 @@
               <p class="card-title">Resumen previo</p>
               <div class="capture-mini-kpis">
                 <div>
-                  <span>Areas capturadas</span>
+                  <span>Áreas capturadas</span>
                   <strong id="scoreAreaCount">0/3</strong>
                 </div>
                 <div>
@@ -477,7 +477,7 @@
                 </div>
               </div>
               <div class="capture-area-list" id="scoreAreaList"></div>
-              <p id="scoreMessage" class="save-message">Lista para validar cuando captures los puntajes por area.</p>
+              <p id="scoreMessage" class="save-message">Lista para validar cuando captures los puntajes por área.</p>
               <div id="scorePostSaveActions" class="post-save-actions" hidden>
                 <button id="scoreViewSavedReportButton" type="button">Ver reporte</button>
                 <button id="scoreSameEventButton" class="ghost" type="button">Otro mismo evento</button>
@@ -556,7 +556,7 @@
         <section class="base-report-grid">
           <article class="panel">
             <div class="panel-header">
-              <p class="card-title">Diagnostico por area</p>
+              <p class="card-title">Diagnóstico por área</p>
             </div>
             <div class="base-area-bars" id="baseAreaBars"></div>
           </article>
@@ -794,6 +794,6 @@
     </main>
 
     <script src="./config.js"></script>
-    <script src="./app.js?v=20260624-area-scores-exact-1"></script>
+    <script src="./app.js?v=20260625-orthography-1"></script>
   </body>
 </html>
