@@ -291,8 +291,11 @@ function appendCapture_(params, rawBody) {
 
     const nextIndex = Math.max(1, targetRow - 3);
     const scoreCapture = isAreaScoreCapture_(payload, config);
+    const hasCompatibleResponses = Array.isArray(payload.responses) && payload.responses.length === config.questionCount;
     const numericResponses = scoreCapture
-      ? Array(config.questionCount).fill("")
+      ? hasCompatibleResponses
+        ? payload.responses.map(toAnswerNumber_)
+        : Array(config.questionCount).fill("")
       : payload.responses.map(toAnswerNumber_);
     const capturaRow = [
       nextIndex,
@@ -596,7 +599,9 @@ function normalizeAreaScorePayload_(payload, config) {
 
   payload.areaScores = areaScores;
   payload.areaCorrects = areaCorrects;
-  payload.responses = [];
+  if (!Array.isArray(payload.responses) || payload.responses.length !== config.questionCount) {
+    payload.responses = [];
+  }
   payload.captureSource = "puntajes_area";
   return true;
 }

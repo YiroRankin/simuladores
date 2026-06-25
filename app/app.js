@@ -744,6 +744,7 @@ function studentAreaCorrect(student, area) {
 }
 
 function studentAreaCorrectIsEstimated(student, area) {
+  if (student.captureSource === "puntajes_area") return true;
   const hasAreaResponses = Array.isArray(student.responses) &&
     student.responses.slice(area.start - 1, area.end).some(Boolean) &&
     answerKey.length >= area.end;
@@ -2013,6 +2014,22 @@ function calculateAreaScoreCapture() {
   return { areaScores, areaCorrects, captured, correct, global, complete };
 }
 
+function wrongAnswerFor(correctAnswer) {
+  return ["A", "B", "C"].find((letter) => letter !== correctAnswer) || "A";
+}
+
+function estimatedResponsesFromAreaScores(areaCorrects) {
+  return Array.from({ length: currentQuestionCount() }, (_, index) => {
+    const question = index + 1;
+    const area = currentAreas().find((item) => question >= item.start && question <= item.end);
+    if (!area) return "";
+    const areaIndex = question - area.start;
+    const correctLimit = Number(areaCorrects[area.code]) || 0;
+    const keyAnswer = answerKey[index] || currentProfile().key[index] || "A";
+    return areaIndex < correctLimit ? keyAnswer : wrongAnswerFor(keyAnswer);
+  });
+}
+
 function updateAreaScorePreview() {
   if (!els.scoreForm) return { complete: false, fieldsReady: false };
   const preview = calculateAreaScoreCapture();
@@ -2139,6 +2156,7 @@ function areaScorePayload() {
     event: els.scoreEvent.value.trim(),
     year: els.scoreYear.value.trim(),
     version: els.scoreVersion.value.trim(),
+    responses: estimatedResponsesFromAreaScores(preview.areaCorrects),
     areaScores: preview.areaScores,
     areaCorrects: preview.areaCorrects,
     ...captureMetadata("puntajes_area"),
