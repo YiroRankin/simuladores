@@ -971,6 +971,10 @@ button:disabled {
   display: none;
 }
 
+.base-print-report {
+  display: none;
+}
+
 .capture-form {
   display: grid;
   gap: 16px;
@@ -2169,8 +2173,6 @@ button:disabled {
   .hero-panel,
   .status-strip,
   .tabs,
-  .base-panel,
-  .base-controls,
   #reportView > .section-heading,
   #reportView > .kpi-grid,
   #reportView > .scale-card,
@@ -2185,40 +2187,197 @@ button:disabled {
     display: block;
   }
 
-  #baseView .section-heading,
-  #baseView .kpi-grid,
-  #baseView .base-report-grid,
-  #baseView .base-student-panel {
-    break-inside: avoid;
-  }
-
-  #baseView .section-heading {
-    margin-top: 0;
-  }
-
-  #baseView .panel,
-  #baseView .kpi-card {
-    box-shadow: none;
-  }
-
-  #baseView .base-report-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  #baseView .base-table {
-    min-width: 0;
-    font-size: 11px;
-  }
-
-  #baseView .base-table th,
-  #baseView .base-table td {
-    padding: 7px 6px;
-  }
-
   .print-report {
     display: block;
     color: #081b3a;
     font-family: "Montserrat", Arial, sans-serif;
+  }
+
+  #baseView.active > .section-heading,
+  #baseView.active > .base-panel,
+  #baseView.active > .base-controls,
+  #baseView.active > .base-kpi-grid,
+  #baseView.active > .base-report-grid,
+  #baseView.active > .base-student-panel {
+    display: none;
+  }
+
+  #baseView.active .base-print-report {
+    display: block;
+  }
+
+  .institutional-report {
+    display: block;
+    color: #081b3a;
+    font-family: "Montserrat", Arial, sans-serif;
+    font-size: 11px;
+  }
+
+  .institutional-report section {
+    break-inside: avoid;
+  }
+
+  .institutional-cover {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 245px;
+    gap: 16px;
+    align-items: end;
+    padding-bottom: 14px;
+    border-bottom: 4px solid var(--purple);
+  }
+
+  .institutional-cover .eyebrow {
+    margin: 0 0 6px;
+    color: var(--purple);
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .institutional-cover h1 {
+    margin: 0;
+    color: var(--ink);
+    font-size: 30px;
+    font-weight: 900;
+    line-height: 1.02;
+  }
+
+  .institutional-cover p {
+    margin: 8px 0 0;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 800;
+  }
+
+  .institutional-cover-meta {
+    display: grid;
+    gap: 5px;
+    padding: 11px 12px;
+    background: #f6f7ff;
+    border: 1px solid #d8d2f3;
+    border-radius: 10px;
+  }
+
+  .institutional-cover-meta span,
+  .print-facts-grid span,
+  .print-kpi-grid span {
+    color: var(--muted);
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .institutional-cover-meta strong,
+  .print-facts-grid strong,
+  .print-kpi-grid strong {
+    color: var(--ink);
+    font-size: 13px;
+    font-weight: 900;
+  }
+
+  .print-section {
+    margin-top: 12px;
+  }
+
+  .print-section h2 {
+    margin: 0 0 7px;
+    color: var(--purple);
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .print-section p {
+    margin: 0 0 7px;
+    color: var(--muted);
+    font-size: 10.5px;
+    font-weight: 700;
+    line-height: 1.35;
+  }
+
+  .print-facts-grid,
+  .print-kpi-grid,
+  .print-recommendations {
+    display: grid;
+    gap: 8px;
+  }
+
+  .print-facts-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .print-kpi-grid,
+  .print-recommendations {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .print-recommendations {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .print-facts-grid div,
+  .print-kpi-grid div,
+  .print-recommendations article {
+    padding: 8px 10px;
+    background: #f9faff;
+    border: 1px solid #d8d2f3;
+    border-radius: 9px;
+  }
+
+  .print-kpi-grid strong {
+    display: block;
+    margin-top: 4px;
+    font-size: 21px;
+  }
+
+  .print-recommendations strong {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--ink);
+    font-size: 11px;
+    font-weight: 900;
+  }
+
+  .institutional-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 10.5px;
+  }
+
+  .institutional-table th,
+  .institutional-table td {
+    padding: 5px 6px;
+    text-align: left;
+    vertical-align: top;
+    border-bottom: 1px solid #e1def8;
+  }
+
+  .institutional-table th {
+    color: var(--purple);
+    font-size: 8.5px;
+    font-weight: 900;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+
+  .institutional-table td {
+    color: var(--ink);
+    font-weight: 800;
+  }
+
+  .print-note {
+    margin-top: 7px !important;
+    padding: 7px 9px;
+    background: #f7f8ff;
+    border-left: 3px solid var(--purple);
+    border-radius: 7px;
+  }
+
+  .print-annex {
+    page-break-before: always;
   }
 
   .print-header {

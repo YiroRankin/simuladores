@@ -632,6 +632,7 @@ const els = {
   baseSchoolRecommendations: document.querySelector("#baseSchoolRecommendations"),
   baseStudentRows: document.querySelector("#baseStudentRows"),
   baseStudentMeta: document.querySelector("#baseStudentMeta"),
+  basePrintReport: document.querySelector("#basePrintReport"),
   eventAverage: document.querySelector("#eventAverage"),
   eventMeta: document.querySelector("#eventMeta"),
   studentName: document.querySelector("#studentName"),
@@ -1400,6 +1401,78 @@ function baseActionForStudent(student, priorityArea) {
   return `Acompañamiento académico focalizado en ${priorityArea.label}.`;
 }
 
+function uniqueBaseGroups(eventStudents) {
+  return [...new Set(eventStudents
+    .map((student) => [student.grade, student.group].filter(Boolean).join(" "))
+    .filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, "es"));
+}
+
+function buildBaseReportContext() {
+  const eventName = els.baseEventSelect?.value || "";
+  const eventStudents = getBaseStudents();
+  if (!eventName || !eventStudents.length) return null;
+
+  const rawEventCount = students.filter((student) => student.event === eventName).length;
+  const accuracies = eventStudents.map(studentAccuracyPercent);
+  const avgAccuracy = mean(accuracies);
+  const medianAccuracy = median(accuracies);
+  const q1 = percentile(accuracies, 0.25);
+  const q3 = percentile(accuracies, 0.75);
+  const variabilityRange = q3 - q1;
+  const variabilityLabel = variabilityRange <= 10
+    ? "resultados relativamente homogéneos"
+    : variabilityRange <= 20
+      ? "variabilidad moderada"
+      : "alta diversidad de resultados";
+  const consolidatedOrHighlighted = eventStudents.filter((student) => studentAccuracyPercent(student) >= 70);
+  const consolidatedPct = (consolidatedOrHighlighted.length / eventStudents.length) * 100;
+  const priorityStudents = eventStudents.filter((student) => studentAccuracyPercent(student) < 60);
+  const priorityPct = (priorityStudents.length / eventStudents.length) * 100;
+  const areaAverages = currentAreas().map((area) => ({
+    ...area,
+    average: mean(eventStudents.map((student) => cenevalToPercent(student.scores[area.code]))),
+    median: median(eventStudents.map((student) => cenevalToPercent(student.scores[area.code]))),
+    q1: percentile(eventStudents.map((student) => cenevalToPercent(student.scores[area.code])), 0.25),
+    q3: percentile(eventStudents.map((student) => cenevalToPercent(student.scores[area.code])), 0.75),
+  }));
+  const strongest = areaAverages.reduce((best, area) => (area.average > best.average ? area : best), areaAverages[0]);
+  const weakest = areaAverages.reduce((low, area) => (area.average < low.average ? area : low), areaAverages[0]);
+  const groups = uniqueBaseGroups(eventStudents);
+  const generatedAt = new Date();
+
+  const summary =
+    `En la aplicación participaron ${eventStudents.length} estudiante${eventStudents.length === 1 ? "" : "s"} con registros válidos. ` +
+    `El aprovechamiento promedio fue de ${formatPercentScore(avgAccuracy, 1)}, con una mediana de ${formatPercentScore(medianAccuracy, 1)}. ` +
+    `${strongest.label} presentó el mayor nivel de aprovechamiento, mientras que ${weakest.label} concentró la principal oportunidad de fortalecimiento. ` +
+    `${formatPercentScore(consolidatedPct, 1)} mostró desempeño consolidado o destacado y ${formatPercentScore(priorityPct, 1)} requiere acompañamiento académico focalizado. ` +
+    `El grupo presenta ${variabilityLabel}.`;
+
+  return {
+    eventName,
+    eventStudents,
+    rawEventCount,
+    validCount: eventStudents.length,
+    duplicateCount: baseDuplicateCount,
+    incompleteCount: 0,
+    avgAccuracy,
+    medianAccuracy,
+    q1,
+    q3,
+    variabilityLabel,
+    consolidatedOrHighlighted,
+    consolidatedPct,
+    priorityStudents,
+    priorityPct,
+    areaAverages,
+    strongest,
+    weakest,
+    groups,
+    summary,
+    generatedAt,
+  };
+}
+
 function renderBaseEmpty(message = "Selecciona un evento con alumnos capturados.") {
   if (!els.baseStudentCount) return;
   els.baseStudentCount.textContent = "0";
@@ -1422,39 +1495,31 @@ function renderBaseEmpty(message = "Selecciona un evento con alumnos capturados.
   els.baseSchoolRecommendations.innerHTML = "";
   els.baseStudentRows.innerHTML = `<tr><td colspan="6">Sin alumnos capturados para este evento.</td></tr>`;
   els.baseStudentMeta.textContent = "0 registros";
+  if (els.basePrintReport) els.basePrintReport.innerHTML = "";
 }
 
 function renderBaseReport() {
   if (!els.baseEventSelect) return;
-  const eventName = els.baseEventSelect.value;
-  const eventStudents = getBaseStudents();
-  if (!eventName || !eventStudents.length) {
+  const context = buildBaseReportContext();
+  if (!context) {
     renderBaseEmpty();
     return;
   }
-
-  const accuracies = eventStudents.map(studentAccuracyPercent);
-  const avgAccuracy = mean(accuracies);
-  const medianAccuracy = median(accuracies);
-  const q1 = percentile(accuracies, 0.25);
-  const q3 = percentile(accuracies, 0.75);
-  const variabilityRange = q3 - q1;
-  const variabilityLabel = variabilityRange <= 10
-    ? "resultados relativamente homogéneos"
-    : variabilityRange <= 20
-      ? "variabilidad moderada"
-      : "alta diversidad de resultados";
-  const consolidatedOrHighlighted = eventStudents.filter((student) => studentAccuracyPercent(student) >= 70);
-  const consolidatedPct = (consolidatedOrHighlighted.length / eventStudents.length) * 100;
-  const priorityStudents = eventStudents.filter((student) => {
-    return studentAccuracyPercent(student) < 60;
-  });
-  const areaAverages = currentAreas().map((area) => ({
-    ...area,
-    average: mean(eventStudents.map((student) => cenevalToPercent(student.scores[area.code]))),
-  }));
-  const strongest = areaAverages.reduce((best, area) => (area.average > best.average ? area : best), areaAverages[0]);
-  const weakest = areaAverages.reduce((low, area) => (area.average < low.average ? area : low), areaAverages[0]);
+  const {
+    eventName,
+    eventStudents,
+    avgAccuracy,
+    medianAccuracy,
+    q1,
+    q3,
+    consolidatedOrHighlighted,
+    priorityStudents,
+    areaAverages,
+    strongest,
+    weakest,
+    consolidatedPct,
+    summary,
+  } = context;
 
   els.baseStudentCount.textContent = String(eventStudents.length);
   els.baseSelectedEvent.textContent = eventName;
@@ -1470,12 +1535,7 @@ function renderBaseReport() {
   els.baseStatus.textContent = baseDuplicateCount
     ? `Diagnóstico generado para ${eventName}. Se excluyeron ${baseDuplicateCount} registro${baseDuplicateCount === 1 ? "" : "s"} duplicado${baseDuplicateCount === 1 ? "" : "s"} del resumen.`
     : `Diagnóstico generado para ${eventName}.`;
-  els.baseExecutiveSummary.textContent =
-    `En la aplicación participaron ${eventStudents.length} estudiante${eventStudents.length === 1 ? "" : "s"} con registros válidos. ` +
-    `El aprovechamiento promedio fue de ${formatPercentScore(avgAccuracy, 1)}, con una mediana de ${formatPercentScore(medianAccuracy, 1)}. ` +
-    `${strongest.label} presentó el mayor nivel de aprovechamiento, mientras que ${weakest.label} concentró la principal oportunidad de fortalecimiento. ` +
-    `${formatPercentScore((consolidatedOrHighlighted.length / eventStudents.length) * 100, 1)} mostró desempeño consolidado o destacado y ${formatPercentScore((priorityStudents.length / eventStudents.length) * 100, 1)} requiere acompañamiento académico focalizado. ` +
-    `El grupo presenta ${variabilityLabel}.`;
+  els.baseExecutiveSummary.textContent = summary;
 
   els.baseHighlightStrip.innerHTML = [
     { label: "Principal fortaleza", value: strongest.label, tone: "ok" },
@@ -1494,6 +1554,7 @@ function renderBaseReport() {
   renderBaseGroupRows(eventStudents);
   renderBaseRecommendations(eventStudents, weakest, priorityStudents, consolidatedPct);
   renderBaseStudentRows(eventStudents, avgAccuracy);
+  renderBasePrintReport(context);
 }
 
 function renderBaseDistribution(eventStudents) {
@@ -1663,6 +1724,239 @@ function renderBaseStudentRows(eventStudents, avgAccuracy) {
       </tr>
     `;
   }).join("");
+}
+
+function baseDistributionRows(eventStudents) {
+  const bands = [
+    { key: "high", label: "Desempeño destacado" },
+    { key: "competitive", label: "Desempeño consolidado" },
+    { key: "base", label: "En proceso de consolidación" },
+    { key: "priority", label: "Requiere fortalecimiento" },
+  ].map((band) => ({ ...band, count: 0 }));
+
+  eventStudents.forEach((student) => {
+    const level = baseLevelForStudent(student);
+    const band = bands.find((item) => item.key === level.key);
+    if (band) band.count++;
+  });
+
+  return bands.map((band) => ({
+    ...band,
+    pct: eventStudents.length ? (band.count / eventStudents.length) * 100 : 0,
+  }));
+}
+
+function baseInterestRows(eventStudents) {
+  const grouped = new Map();
+  eventStudents.forEach((student) => {
+    const key = student.career || "Sin interés capturado";
+    if (!grouped.has(key)) grouped.set(key, []);
+    grouped.get(key).push(student);
+  });
+
+  return [...grouped.entries()]
+    .map(([career, items]) => ({
+      career,
+      count: items.length,
+      pct: eventStudents.length ? (items.length / eventStudents.length) * 100 : 0,
+      avg: mean(items.map(studentAccuracyPercent)),
+    }))
+    .sort((a, b) => b.count - a.count || b.avg - a.avg)
+    .slice(0, 10);
+}
+
+function baseGroupSummaryRows(eventStudents) {
+  const grouped = new Map();
+  eventStudents.forEach((student) => {
+    const key = [student.grade, student.group].filter(Boolean).join(" ") || "Sin grupo capturado";
+    if (!grouped.has(key)) grouped.set(key, []);
+    grouped.get(key).push(student);
+  });
+
+  return [...grouped.entries()]
+    .map(([group, items]) => {
+      const strongestArea = currentAreas()
+        .map((area) => ({
+          label: area.label,
+          average: mean(items.map((student) => cenevalToPercent(student.scores[area.code]))),
+        }))
+        .sort((a, b) => b.average - a.average)[0];
+      const priorityCount = items.filter((student) => studentAccuracyPercent(student) < 60).length;
+      return {
+        group,
+        count: items.length,
+        avg: mean(items.map(studentAccuracyPercent)),
+        median: median(items.map(studentAccuracyPercent)),
+        priorityCount,
+        strongestArea,
+      };
+    })
+    .sort((a, b) => b.count - a.count || b.avg - a.avg);
+}
+
+function renderBasePrintReport(context) {
+  if (!els.basePrintReport || !context) return;
+  const generated = context.generatedAt.toLocaleString("es-MX", {
+    dateStyle: "long",
+    timeStyle: "short",
+  });
+  const distributionRows = baseDistributionRows(context.eventStudents);
+  const interestRows = baseInterestRows(context.eventStudents);
+  const groupRows = baseGroupSummaryRows(context.eventStudents);
+  const individualRows = [...context.eventStudents]
+    .sort((a, b) => studentAccuracyPercent(b) - studentAccuracyPercent(a))
+    .map((student) => {
+      const priorityArea = basePriorityArea(student);
+      const level = baseLevelForStudent(student);
+      return {
+        student,
+        accuracy: studentAccuracyPercent(student),
+        priorityArea,
+        priorityAreaPercent: cenevalToPercent(priorityArea.score),
+        level,
+        group: [student.grade, student.group].filter(Boolean).join(" ") || "Sin grupo capturado",
+      };
+    });
+
+  els.basePrintReport.innerHTML = `
+    <article class="institutional-report">
+      <section class="institutional-cover">
+        <div>
+          <p class="eyebrow">Misión Admisión</p>
+          <h1>Diagnóstico institucional de aprovechamiento</h1>
+          <p>${escapeHtml(context.eventName)}</p>
+        </div>
+        <div class="institutional-cover-meta">
+          <span>Reporte generado</span>
+          <strong>${escapeHtml(generated)}</strong>
+          <span>Simulador</span>
+          <strong>${escapeHtml(currentProfile().shortLabel)}</strong>
+        </div>
+      </section>
+
+      <section class="print-section print-tech-sheet">
+        <h2>Ficha técnica</h2>
+        <div class="print-facts-grid">
+          <div><span>Evento</span><strong>${escapeHtml(context.eventName)}</strong></div>
+          <div><span>Participantes registrados</span><strong>${context.rawEventCount}</strong></div>
+          <div><span>Registros válidos</span><strong>${context.validCount}</strong></div>
+          <div><span>Duplicados excluidos</span><strong>${context.duplicateCount}</strong></div>
+          <div><span>Intentos incompletos</span><strong>${context.incompleteCount}</strong></div>
+          <div><span>Grupos evaluados</span><strong>${context.groups.length ? escapeHtml(context.groups.join(", ")) : "No capturados"}</strong></div>
+        </div>
+        ${context.validCount < 10 ? `<p class="print-note">Los resultados deben interpretarse con cautela debido al número reducido de participantes.</p>` : ""}
+      </section>
+
+      <section class="print-section">
+        <h2>Resumen ejecutivo</h2>
+        <p>${escapeHtml(context.summary)}</p>
+        <div class="print-kpi-grid">
+          <div><span>Aprovechamiento promedio</span><strong>${formatPercentScore(context.avgAccuracy, 1)}</strong></div>
+          <div><span>Mediana del grupo</span><strong>${formatPercentScore(context.medianAccuracy, 1)}</strong></div>
+          <div><span>Consolidado o destacado</span><strong>${formatPercentScore(context.consolidatedPct, 1)}</strong></div>
+          <div><span>Requiere fortalecimiento</span><strong>${formatPercentScore(context.priorityPct, 1)}</strong></div>
+        </div>
+      </section>
+
+      <section class="print-section">
+        <h2>Distribución de aprovechamiento</h2>
+        <table class="institutional-table">
+          <thead><tr><th>Banda descriptiva</th><th>Participantes</th><th>Porcentaje</th></tr></thead>
+          <tbody>
+            ${distributionRows.map((row) => `
+              <tr><td>${escapeHtml(row.label)}</td><td>${row.count}</td><td>${formatPercentScore(row.pct, 1)}</td></tr>
+            `).join("")}
+          </tbody>
+        </table>
+        <p class="print-note">Rango intercuartílico: P25 ${formatPercentScore(context.q1, 1)} a P75 ${formatPercentScore(context.q3, 1)}; ${context.variabilityLabel}.</p>
+      </section>
+
+      <section class="print-section">
+        <h2>Diagnóstico por área</h2>
+        <table class="institutional-table">
+          <thead><tr><th>Área</th><th>Promedio</th><th>Mediana</th><th>P25</th><th>P75</th></tr></thead>
+          <tbody>
+            ${context.areaAverages.map((area) => `
+              <tr>
+                <td>${escapeHtml(area.label)}</td>
+                <td>${formatPercentScore(area.average, 1)}</td>
+                <td>${formatPercentScore(area.median, 1)}</td>
+                <td>${formatPercentScore(area.q1, 1)}</td>
+                <td>${formatPercentScore(area.q3, 1)}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </section>
+
+      <section class="print-section">
+        <h2>Perfil de intereses académicos</h2>
+        <table class="institutional-table">
+          <thead><tr><th>Interés académico</th><th>Participantes</th><th>Porcentaje</th><th>Aprovechamiento</th></tr></thead>
+          <tbody>
+            ${interestRows.map((row) => `
+              <tr><td>${escapeHtml(row.career)}</td><td>${row.count}</td><td>${formatPercentScore(row.pct, 1)}</td><td>${formatPercentScore(row.avg, 1)}</td></tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </section>
+
+      <section class="print-section">
+        <h2>Comparativo por grupos</h2>
+        ${groupRows.length ? `
+          <table class="institutional-table">
+            <thead><tr><th>Grupo</th><th>Participantes</th><th>Promedio</th><th>Mediana</th><th>Fortalecimiento</th><th>Mayor aprovechamiento</th></tr></thead>
+            <tbody>
+              ${groupRows.map((row) => `
+                <tr>
+                  <td>${escapeHtml(row.group)}</td>
+                  <td>${row.count}</td>
+                  <td>${formatPercentScore(row.avg, 1)}</td>
+                  <td>${formatPercentScore(row.median, 1)}</td>
+                  <td>${row.priorityCount}</td>
+                  <td>${escapeHtml(row.strongestArea?.label || "-")}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        ` : `<p>No hay grupos capturados para este evento.</p>`}
+      </section>
+
+      <section class="print-section">
+        <h2>Recomendaciones académicas</h2>
+        <div class="print-recommendations">
+          <article><strong>Principal fortaleza</strong><p>${escapeHtml(context.strongest.label)} presentó el mayor aprovechamiento observado.</p></article>
+          <article><strong>Principal oportunidad</strong><p>${escapeHtml(context.weakest.label)} concentra la mayor oportunidad de fortalecimiento.</p></article>
+          <article><strong>Acompañamiento sugerido</strong><p>${context.priorityStudents.length ? `Abrir seguimiento focalizado para ${context.priorityStudents.length} participante${context.priorityStudents.length === 1 ? "" : "s"}.` : "Mantener seguimiento preventivo del grupo evaluado."}</p></article>
+        </div>
+      </section>
+
+      <section class="print-section">
+        <h2>Metodología y notas de interpretación</h2>
+        <p>Este reporte describe el aprovechamiento observado de los alumnos participantes en el simulador aplicado. Los resultados se expresan como porcentajes de aciertos sobre las preguntas válidas y se organizan en bandas descriptivas internas para orientar acciones académicas.</p>
+        <p>Este reporte es descriptivo y académico; sus resultados deben leerse como evidencia del desempeño observado en esta aplicación. Las comparaciones por grupo deben interpretarse con cautela cuando el número de participantes sea reducido.</p>
+      </section>
+
+      <section class="print-section print-annex">
+        <h2>Anexo individual confidencial</h2>
+        <table class="institutional-table">
+          <thead><tr><th>Alumno</th><th>Grupo</th><th>Aprovechamiento</th><th>Banda</th><th>Área con mayor oportunidad</th><th>Recomendación</th></tr></thead>
+          <tbody>
+            ${individualRows.map((row) => `
+              <tr>
+                <td>${escapeHtml(row.student.name)}</td>
+                <td>${escapeHtml(row.group)}</td>
+                <td>${formatPercentScore(row.accuracy, 1)}</td>
+                <td>${escapeHtml(row.level.label)}</td>
+                <td>${escapeHtml(row.priorityArea.label)} (${formatPercentScore(row.priorityAreaPercent, 1)})</td>
+                <td>${escapeHtml(baseActionForStudent(row.student, row.priorityArea))}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </section>
+    </article>
+  `;
 }
 
 function renderEventSummary() {
@@ -2261,7 +2555,7 @@ async function saveAreaScoreCapture(event) {
   const payload = areaScorePayload();
   const duplicate = findDuplicateCapture(payload);
   if (duplicate) {
-    const proceed = window.confirm(`Ya existe una captura para ${duplicate.name} en ${duplicate.event} (${duplicate.year}). Â¿Quieres guardar otro intento de todos modos?`);
+    const proceed = window.confirm(`Ya existe una captura para ${duplicate.name} en ${duplicate.event} (${duplicate.year}). ¿Quieres guardar otro intento de todos modos?`);
     if (!proceed) {
       els.scoreMessage.className = "save-message error";
       els.scoreMessage.textContent = "Guardado cancelado para evitar duplicado.";
