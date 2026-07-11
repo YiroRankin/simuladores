@@ -177,7 +177,7 @@ const examProfiles = {
     title: "EXANI II",
     description: "Simulador EXANI II de áreas básicas",
     questionCount: 60,
-    cutoffLabel: "UADY 2025",
+    cutoffLabel: "UADY 2026",
     photoDetection: true,
     key: "CBBBCCBACCABAAAAACBBACBABBCCAABBCABBBABACBBCCACCBBBACBCCBAAC".split(""),
     areas: [
@@ -213,56 +213,58 @@ function initialExamId() {
 let currentExamId = initialExamId();
 let answerKey = [...examProfiles[currentExamId].key];
 
-const uady2025 = [
-  { career: "Actuaria", cutoff: 1043, applicants: 154, admitted: 115, admissionRate: 74.68 },
-  { career: "Administracion", cutoff: 1022, applicants: 271, admitted: 176, admissionRate: 64.94 },
-  { career: "Administracion de tecnologias de la informacion", cutoff: 930, applicants: 35, admitted: 35, admissionRate: 100 },
-  { career: "Agroecologia", cutoff: 861, applicants: 30, admitted: 30, admissionRate: 100 },
-  { career: "Antropologia", cutoff: 870, applicants: 19, admitted: 19, admissionRate: 100 },
-  { career: "Arqueologia", cutoff: 917, applicants: 23, admitted: 23, admissionRate: 100 },
-  { career: "Arquitectura", cutoff: 1130, applicants: 802, admitted: 196, admissionRate: 24.44 },
-  { career: "Artes Visuales", cutoff: 1030, applicants: 119, admitted: 64, admissionRate: 53.78 },
-  { career: "Biologia", cutoff: 904, applicants: 102, admitted: 102, admissionRate: 100 },
-  { career: "Biologia Marina", cutoff: 935, applicants: 169, admitted: 163, admissionRate: 96.45 },
-  { career: "Ciencias de la Computacion", cutoff: 904, applicants: 28, admitted: 28, admissionRate: 100 },
-  { career: "Cirujano Dentista", cutoff: 1157, applicants: 784, admitted: 168, admissionRate: 21.43 },
-  { career: "Comercio internacional", cutoff: 970, applicants: 146, admitted: 135, admissionRate: 92.47 },
-  { career: "Comunicacion Social", cutoff: 870, applicants: 79, admitted: 79, admissionRate: 100 },
-  { career: "Contador Publico (Merida)", cutoff: 1030, applicants: 649, admitted: 448, admissionRate: 69.03 },
-  { career: "Contador Publico (Tizimin)", cutoff: 996, applicants: 59, admitted: 43, admissionRate: 72.88 },
-  { career: "Derecho", cutoff: 1087, applicants: 871, admitted: 355, admissionRate: 40.76 },
-  { career: "Diseno del Habitat", cutoff: 874, applicants: 29, admitted: 29, admissionRate: 100 },
-  { career: "Economia", cutoff: 987, applicants: 105, admitted: 92, admissionRate: 87.62 },
-  { career: "Educacion (Merida)", cutoff: 952, applicants: 116, admitted: 103, admissionRate: 88.79 },
-  { career: "Educacion (Tizimin)", cutoff: 857, applicants: 27, admitted: 27, admissionRate: 100 },
-  { career: "Enfermeria (Merida)", cutoff: 1143, applicants: 472, admitted: 81, admissionRate: 17.16 },
-  { career: "Enfermeria (Tizimin)", cutoff: 1022, applicants: 78, admitted: 38, admissionRate: 48.72 },
-  { career: "Ensenanza de las matematicas", cutoff: 913, applicants: 28, admitted: 28, admissionRate: 100 },
-  { career: "Ensenanza del Idioma ingles", cutoff: 1030, applicants: 72, admitted: 53, admissionRate: 73.61 },
-  { career: "Historia", cutoff: 887, applicants: 26, admitted: 26, admissionRate: 100 },
-  { career: "Ing. Civil", cutoff: 1035, applicants: 321, admitted: 187, admissionRate: 58.26 },
-  { career: "Ing. en Alimentos", cutoff: 896, applicants: 28, admitted: 28, admissionRate: 100 },
-  { career: "Ing. en Biotecnologia", cutoff: 900, applicants: 94, admitted: 94, admissionRate: 100 },
-  { career: "Ing. en Computacion", cutoff: 904, applicants: 40, admitted: 40, admissionRate: 100 },
-  { career: "Ing. en Energias Renovables", cutoff: 961, applicants: 51, admitted: 45, admissionRate: 88.24 },
-  { career: "Ing. en Mecatronica", cutoff: 1104, applicants: 318, admitted: 118, admissionRate: 37.11 },
-  { career: "Ing. Fisica", cutoff: 926, applicants: 74, admitted: 74, admissionRate: 100 },
-  { career: "Ing. Industrial Logistica", cutoff: 870, applicants: 146, admitted: 146, admissionRate: 100 },
-  { career: "Ing. Quimica Industrial", cutoff: 848, applicants: 99, admitted: 99, admissionRate: 100 },
-  { career: "Ing. Software (Merida)", cutoff: 1113, applicants: 316, admitted: 128, admissionRate: 40.51 },
-  { career: "Ing. Software (Tizimin)", cutoff: 900, applicants: 22, admitted: 22, admissionRate: 100 },
-  { career: "Literatura Latinoamericana", cutoff: 978, applicants: 32, admitted: 32, admissionRate: 100 },
-  { career: "Matematicas", cutoff: 943, applicants: 31, admitted: 31, admissionRate: 100 },
-  { career: "Médico Cirujano", cutoff: 1248, applicants: 3724, admitted: 247, admissionRate: 6.63 },
-  { career: "Médico Veterinario Zootecnista", cutoff: 1113, applicants: 971, admitted: 205, admissionRate: 21.11 },
-  { career: "Mercadotecnia y Negocios Internacionales", cutoff: 1065, applicants: 496, admitted: 257, admissionRate: 51.81 },
-  { career: "Nutricion", cutoff: 1109, applicants: 268, admitted: 99, admissionRate: 36.94 },
-  { career: "Psicologia", cutoff: 1061, applicants: 599, admitted: 321, admissionRate: 53.59 },
-  { career: "Quimica Aplicada", cutoff: 943, applicants: 29, admitted: 29, admissionRate: 100 },
-  { career: "Quimico farmaceutico biologo", cutoff: 1048, applicants: 337, admitted: 202, admissionRate: 59.94 },
-  { career: "Rehabilitacion", cutoff: 1117, applicants: 253, admitted: 81, admissionRate: 32.02 },
-  { career: "Trabajo Social", cutoff: 900, applicants: 40, admitted: 40, admissionRate: 100 },
-  { career: "Turismo", cutoff: 952, applicants: 113, admitted: 103, admissionRate: 91.15 },
+const uady2026 = [
+  { career: "Médico Cirujano", cutoff: 1244, applicants: 3898, admitted: 257, admissionRate: 6.6 },
+  { career: "Cirujano Dentista", cutoff: 1157, applicants: 867, admitted: 164, admissionRate: 18.9 },
+  { career: "Enfermería (Mérida)", cutoff: 1130, applicants: 420, admitted: 83, admissionRate: 19.8 },
+  { career: "Ingeniería de Software (Mérida)", cutoff: 1130, applicants: 367, admitted: 132, admissionRate: 36 },
+  { career: "Arquitectura", cutoff: 1126, applicants: 768, admitted: 198, admissionRate: 25.8 },
+  { career: "Rehabilitación", cutoff: 1117, applicants: 334, admitted: 82, admissionRate: 24.6 },
+  { career: "Médico Veterinario Zootecnista", cutoff: 1113, applicants: 986, admitted: 200, admissionRate: 20.3 },
+  { career: "Ingeniería en Mecatrónica", cutoff: 1100, applicants: 282, admitted: 122, admissionRate: 43.3 },
+  { career: "Actuaría", cutoff: 1091, applicants: 164, admitted: 117, admissionRate: 71.3 },
+  { career: "Mercadotecnia y Negocios Internacionales", cutoff: 1091, applicants: 564, admitted: 259, admissionRate: 45.9 },
+  { career: "Nutrición", cutoff: 1087, applicants: 262, admitted: 99, admissionRate: 37.8 },
+  { career: "Derecho", cutoff: 1074, applicants: 856, admitted: 359, admissionRate: 41.9 },
+  { career: "Psicología", cutoff: 1074, applicants: 633, admitted: 330, admissionRate: 52.1 },
+  { career: "Químico Farmacéutico Biólogo", cutoff: 1052, applicants: 402, admitted: 203, admissionRate: 50.5 },
+  { career: "Administración", cutoff: 1043, applicants: 264, admitted: 178, admissionRate: 67.4 },
+  { career: "Literatura Latinoamericana", cutoff: 1043, applicants: 22, admitted: 22, admissionRate: 100 },
+  { career: "Médico Veterinario Zootecnista (Tizimín)", cutoff: 1043, applicants: 139, admitted: 40, admissionRate: 28.8 },
+  { career: "Ingeniería Civil", cutoff: 1039, applicants: 304, admitted: 187, admissionRate: 61.5 },
+  { career: "Contador Público (Mérida)", cutoff: 1030, applicants: 689, admitted: 454, admissionRate: 65.9 },
+  { career: "Contador Público (Tizimín)", cutoff: 1022, applicants: 68, admitted: 46, admissionRate: 67.6 },
+  { career: "Comercio Internacional", cutoff: 1000, applicants: 166, admitted: 142, admissionRate: 85.5 },
+  { career: "Economía", cutoff: 1000, applicants: 107, admitted: 98, admissionRate: 91.6 },
+  { career: "Artes Visuales", cutoff: 996, applicants: 112, admitted: 62, admissionRate: 55.4 },
+  { career: "Trabajo Social", cutoff: 996, applicants: 61, admitted: 40, admissionRate: 65.6 },
+  { career: "Arqueología", cutoff: 991, applicants: 22, admitted: 22, admissionRate: 100 },
+  { career: "Antropología Social", cutoff: 978, applicants: 23, admitted: 23, admissionRate: 100 },
+  { career: "Comunicación Social", cutoff: 978, applicants: 110, admitted: 91, admissionRate: 82.7 },
+  { career: "Ingeniería Física", cutoff: 978, applicants: 83, admitted: 77, admissionRate: 92.8 },
+  { career: "Enfermería (Tizimín)", cutoff: 974, applicants: 65, admitted: 41, admissionRate: 63.1 },
+  { career: "Educación (Mérida)", cutoff: 965, applicants: 118, admitted: 102, admissionRate: 86.4 },
+  { career: "Historia", cutoff: 957, applicants: 16, admitted: 16, admissionRate: 100 },
+  { career: "Química Aplicada", cutoff: 957, applicants: 33, admitted: 33, admissionRate: 100 },
+  { career: "Educación (Tizimín)", cutoff: 943, applicants: 25, admitted: 25, admissionRate: 100 },
+  { career: "Biología Marina", cutoff: 939, applicants: 173, admitted: 164, admissionRate: 94.8 },
+  { career: "Educación Inicial y Gestión de Instituciones", cutoff: 935, applicants: 6, admitted: 6, admissionRate: 100 },
+  { career: "Ingeniería en Energías Renovables", cutoff: 930, applicants: 37, admitted: 37, admissionRate: 100 },
+  { career: "Enseñanza de las Matemáticas", cutoff: 926, applicants: 23, admitted: 23, admissionRate: 100 },
+  { career: "Administración de Tecnologías de la Información", cutoff: 913, applicants: 52, admitted: 52, admissionRate: 100 },
+  { career: "Ciencias de la Computación", cutoff: 913, applicants: 33, admitted: 33, admissionRate: 100 },
+  { career: "Diseño del Hábitat", cutoff: 913, applicants: 36, admitted: 36, admissionRate: 100 },
+  { career: "Agroecología", cutoff: 904, applicants: 26, admitted: 26, admissionRate: 100 },
+  { career: "Ingeniería en Biotecnología", cutoff: 891, applicants: 109, admitted: 109, admissionRate: 100 },
+  { career: "Biología", cutoff: 883, applicants: 115, admitted: 115, admissionRate: 100 },
+  { career: "Ingeniería Industrial Logística", cutoff: 883, applicants: 138, admitted: 138, admissionRate: 100 },
+  { career: "Ingeniería de Software (Tizimín)", cutoff: 878, applicants: 33, admitted: 33, admissionRate: 100 },
+  { career: "Matemáticas", cutoff: 874, applicants: 16, admitted: 16, admissionRate: 100 },
+  { career: "Enseñanza del Idioma Inglés", cutoff: 870, applicants: 59, admitted: 59, admissionRate: 100 },
+  { career: "Turismo", cutoff: 870, applicants: 102, admitted: 102, admissionRate: 100 },
+  { career: "Ingeniería Química Industrial", cutoff: 861, applicants: 84, admitted: 84, admissionRate: 100 },
+  { career: "Ingeniería en Computación", cutoff: 857, applicants: 48, admitted: 48, admissionRate: 100 },
+  { career: "Ingeniería en Alimentos", cutoff: 830, applicants: 44, admitted: 44, admissionRate: 100 },
 ];
 
 const sheetCareers = [
@@ -287,6 +289,7 @@ const sheetCareers = [
   "Economía",
   "Educación (Mérida)",
   "Educación (Tizimín)",
+  "Educación Inicial y Gestión de Instituciones",
   "Enfermería (Mérida)",
   "Enfermería (Tizimín)",
   "Enseñanza de las matemáticas",
@@ -307,6 +310,7 @@ const sheetCareers = [
   "Matemáticas",
   "Médico cirujano",
   "Médico veterinario zootecnista",
+  "Médico veterinario zootecnista (Tizimín)",
   "Mercadotecnia y negocios internacionales",
   "Nutrición",
   "Psicología",
@@ -332,7 +336,7 @@ const exaniOneCareers = [
 ];
 
 const careerAliases = {
-  "antropologia social": "antropologia",
+  "antropologia": "antropologia social",
   "ingenieria civil": "ing. civil",
   "ingenieria de software merida": "ing. software merida",
   "ingenieria de software tizimin": "ing. software tizimin",
@@ -370,8 +374,8 @@ function normalizeCareer(value) {
   return alias ? normalizeText(alias) : cleaned;
 }
 
-const cutoffs = Object.fromEntries(uady2025.map((item) => [normalizeCareer(item.career), item]));
-const uadyCareerOptions = uady2025.map((item) => item.career);
+const cutoffs = Object.fromEntries(uady2026.map((item) => [normalizeCareer(item.career), item]));
+const uadyCareerOptions = uady2026.map((item) => item.career);
 
 const exaniOneBenchmarks = {
   general: {
@@ -469,7 +473,7 @@ function getCutoffForStudent(student) {
   }
 
   const cutoff = cutoffs[normalizeCareer(student.career)] || null;
-  return cutoff ? { ...cutoff, sourceLabel: "UADY 2025" } : null;
+  return cutoff ? { ...cutoff, sourceLabel: "UADY 2026" } : null;
 }
 
 function getHistoryAverage() {
@@ -488,7 +492,7 @@ function cutoffMessageFor(student, cutoff, delta) {
   if (!cutoff) {
     return currentExamId === "exani1"
       ? `No encontré punto de corte para ${student.career}. Usa Preparatoria Uno, Preparatoria Dos o UABIC.`
-      : `No encontré un corte UADY 2025 para ${student.career}. Hay que agregar un alias de carrera.`;
+      : `No encontré un corte UADY 2026 para ${student.career}. Hay que agregar un alias de carrera.`;
   }
 
   if (currentExamId === "exani1") {
@@ -499,8 +503,8 @@ function cutoffMessageFor(student, cutoff, delta) {
   }
 
   return delta >= 0
-    ? `El puntaje supera el corte UADY 2025 de ${student.career}. En 2025 ingresaron ${cutoff.admitted} de ${cutoff.applicants} aspirantes (${cutoff.admissionRate}%).`
-    : `Está a ${Math.abs(delta)} puntos del corte UADY 2025 de ${student.career}. En 2025 ingresaron ${cutoff.admitted} de ${cutoff.applicants} aspirantes (${cutoff.admissionRate}%).`;
+    ? `El puntaje supera el corte UADY 2026 de ${student.career}. En 2026 ingresaron ${cutoff.admitted} de ${cutoff.applicants} aspirantes (${cutoff.admissionRate}%).`
+    : `Está a ${Math.abs(delta)} puntos del corte UADY 2026 de ${student.career}. En 2026 ingresaron ${cutoff.admitted} de ${cutoff.applicants} aspirantes (${cutoff.admissionRate}%).`;
 }
 
 const els = {
@@ -2033,9 +2037,9 @@ function renderReport(studentId) {
   els.cutoffMeter.closest(".cutoff-card")?.classList.toggle("below-cutoff", Boolean(cutoff && delta < 0));
   els.cutoffMessage.textContent = cutoff
     ? delta >= 0
-      ? `Arriba del corte: +${formatScore(delta)} puntos sobre la referencia UADY 2025 de ${student.career}. En 2025 ingresaron ${cutoff.admitted} de ${cutoff.applicants} aspirantes (${cutoff.admissionRate}%).`
-      : `Está a ${Math.abs(delta)} puntos del corte UADY 2025 de ${student.career}. En 2025 ingresaron ${cutoff.admitted} de ${cutoff.applicants} aspirantes (${cutoff.admissionRate}%).`
-    : `No encontré un corte UADY 2025 para ${student.career}. Hay que agregar un alias de carrera.`;
+      ? `Arriba del corte: +${formatScore(delta)} puntos sobre la referencia UADY 2026 de ${student.career}. En 2026 ingresaron ${cutoff.admitted} de ${cutoff.applicants} aspirantes (${cutoff.admissionRate}%).`
+      : `Está a ${Math.abs(delta)} puntos del corte UADY 2026 de ${student.career}. En 2026 ingresaron ${cutoff.admitted} de ${cutoff.applicants} aspirantes (${cutoff.admissionRate}%).`
+    : `No encontré un corte UADY 2026 para ${student.career}. Hay que agregar un alias de carrera.`;
 
   if (currentExamId === "exani1") {
     els.cutoffMessage.textContent = cutoffMessageFor(student, cutoff, delta);

@@ -13,7 +13,7 @@ Proyecto para construir una webapp interna de calificacion y reporte de resultad
 - Respuestas: A/B/C, almacenadas como 1/2/3 para mantener compatibilidad con el Google Sheet actual.
 - Fuente comparativa inicial: Google Sheet historico `EXANI II-SIMULADOR ESCUELAS. Calificaciones`.
 - Clave inicial: la clave ya existente en la pestana `Claves`.
-- Puntos de corte UADY: se usara el proceso de ingreso 2025 como contraste inicial.
+- Puntos de corte UADY: se usa el proceso de ingreso 2026 como contraste vigente.
 - Usuarios: equipo comercial interno.
 - Acceso alumno: fuera del MVP.
 - PDF individual: incluido en MVP.
@@ -35,7 +35,7 @@ Proyecto para construir una webapp interna de calificacion y reporte de resultad
 - `Captura`: alumnos, carrera, evento, ano y respuestas crudas.
 - `Claves`: clave oficial y comparacion respuesta-vs-clave.
 - `Resultados`: aciertos, puntajes CENEVAL por area y global.
-- `data/uady-2025.json`: cortes UADY 2025 y datos de demanda/admitidos.
+- `data/uady-2026.json`: cortes UADY 2026 y datos de demanda/admitidos.
 - `concentrado_looker`: tabla plana actual para reporte.
 - `concentrado_looker_aplicacion`: promedios por evento/ano.
 
