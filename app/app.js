@@ -177,7 +177,7 @@ const examProfiles = {
     title: "EXANI II",
     description: "Simulador EXANI II de áreas básicas",
     questionCount: 60,
-    cutoffLabel: "UADY 2026",
+    cutoffLabel: "Admisión 2026",
     photoDetection: true,
     key: "CBBBCCBACCABAAAAACBBACBABBCCAABBCABBBABACBBCCACCBBBACBCCBAAC".split(""),
     areas: [
@@ -265,6 +265,36 @@ const uady2026 = [
   { career: "Ingeniería Química Industrial", cutoff: 861, applicants: 84, admitted: 84, admissionRate: 100 },
   { career: "Ingeniería en Computación", cutoff: 857, applicants: 48, admitted: 48, admissionRate: 100 },
   { career: "Ingeniería en Alimentos", cutoff: 830, applicants: 44, admitted: 44, admissionRate: 100 },
+];
+
+const uac2026 = [
+  { career: "Biólogo", program: "Biólogo", cutoff: 994, max: 1258, applicants: 45, admitted: 44, admissionRate: 97.8, scale: "IUAC", campus: "Campus V, San Francisco de Campeche", modality: "Escolarizada" },
+  { career: "Ingeniería Bioquímica Ambiental", program: "Licenciatura como Ingeniero Bioquímico Ambiental", cutoff: 928, max: 1222, applicants: 12, admitted: 11, admissionRate: 91.7, scale: "IUAC", campus: "Campus V, San Francisco de Campeche", modality: "Escolarizada" },
+  { career: "Ingeniería en Alimentos y Biotecnología", program: "Licenciatura como Ingeniero en Alimentos y Biotecnología", cutoff: 910, max: 1276, applicants: 11, admitted: 10, admissionRate: 90.9, scale: "IUAC", campus: "Campus V, San Francisco de Campeche", modality: "Escolarizada" },
+  { career: "Antropología", program: "Licenciatura en Antropología", cutoff: 910, max: 1240, applicants: 9, admitted: 9, admissionRate: 100, scale: "IUAC", campus: "Campus I, San Francisco de Campeche", modality: "Escolarizada" },
+  { career: "Ciencias Políticas y Administración Pública", program: "Licenciatura en Ciencias Políticas y Administración Pública", cutoff: 868, max: 1258, applicants: 28, admitted: 25, admissionRate: 89.3, scale: "IUAC", campus: "Campus I, San Francisco de Campeche", modality: "Escolarizada" },
+  { career: "Economía", program: "Licenciatura en Economía", cutoff: 946, max: 1258, applicants: 19, admitted: 19, admissionRate: 100, scale: "IUAC", campus: "Campus I, San Francisco de Campeche", modality: "Escolarizada" },
+  { career: "Administración de Pymes", program: "Licenciatura en Administración de Pymes", cutoff: 934, max: 1252, applicants: 27, admitted: 26, admissionRate: 96.3, scale: "IUAC", campus: "A distancia", modality: "A distancia" },
+  { career: "Administración y Finanzas", program: "Licenciatura en Administración y Finanzas", cutoff: 982, max: 1276, applicants: 164, admitted: 153, admissionRate: 93.3, scale: "IUAC", campus: "Campus I, San Francisco de Campeche", modality: "Escolarizada" },
+  { career: "Contaduría", program: "Licenciatura en Contaduría", cutoff: 1174, max: 1282, applicants: 249, admitted: 164, admissionRate: 65.9, scale: "IUAC", campus: "Campus I, San Francisco de Campeche", modality: "Escolarizada" },
+  { career: "Derecho", program: "Licenciatura en Derecho", cutoff: 1204, max: 1276, applicants: 364, admitted: 171, admissionRate: 47, scale: "IUAC", campus: "Campus I, San Francisco de Campeche", modality: "Escolarizada" },
+  { career: "Historia", program: "Licenciatura en Historia", cutoff: 898, max: 1258, applicants: 10, admitted: 9, admissionRate: 90, scale: "IUAC", campus: "Campus I, San Francisco de Campeche", modality: "Escolarizada" },
+  { career: "Literatura", program: "Licenciatura en Literatura", cutoff: 1012, max: 1234, applicants: 11, admitted: 11, admissionRate: 100, scale: "IUAC", campus: "Campus I, San Francisco de Campeche", modality: "Escolarizada" },
+  { career: "Ingeniería Civil y Administración", program: "Licenciatura como Ingeniero Civil y Administración", cutoff: 1120, max: 1264, applicants: 146, admitted: 111, admissionRate: 76, scale: "IUAC", campus: "Campus V, San Francisco de Campeche", modality: "Escolarizada" },
+  { career: "Ingeniería en Energía", program: "Licenciatura como Ingeniero en Energía", cutoff: 880, max: 1246, applicants: 16, admitted: 13, admissionRate: 81.3, scale: "IUAC", campus: "Campus V, San Francisco de Campeche", modality: "Escolarizada" },
+  { career: "Ingeniería en Mecatrónica", program: "Licenciatura como Ingeniero en Mecatrónica", cutoff: 832, max: 1270, applicants: 95, admitted: 88, admissionRate: 92.6, scale: "IUAC", campus: "Campus V, San Francisco de Campeche", modality: "Escolarizada" },
+  { career: "Ingeniería en Sistemas Computacionales", program: "Licenciatura como Ingeniero en Sistemas Computacionales", cutoff: 718, max: 1264, applicants: 85, admitted: 81, admissionRate: 95.3, scale: "IUAC", campus: "Campus V, San Francisco de Campeche", modality: "Escolarizada" },
+  { career: "Ingeniería en Tecnología de Software", program: "Licenciatura como Ingeniero en Tecnología de Software", cutoff: 1216, max: 1282, applicants: 89, admitted: 42, admissionRate: 47.2, scale: "IUAC", campus: "Campus V, San Francisco de Campeche", modality: "Escolarizada" },
+  { career: "Ingeniería Mecánico Eléctrico", program: "Licenciatura como Ingeniero Mecánico Eléctrico", cutoff: 1138, max: 1276, applicants: 69, admitted: 45, admissionRate: 65.2, scale: "IUAC", campus: "Campus V, San Francisco de Campeche", modality: "Escolarizada" },
+  { career: "Médico Veterinario Zootecnista", program: "Licenciatura como Médico Veterinario Zootecnista", cutoff: 1009, max: 1217, applicants: 243, admitted: 94, admissionRate: 38.7, scale: "ICNE (CENEVAL)", campus: "Campus IV, Escárcega", modality: "Escolarizada" },
+  { career: "Químico Farmacéutico Biólogo", program: "Licenciatura como Químico Farmacéutico Biólogo", cutoff: 978, max: 1217, applicants: 165, admitted: 136, admissionRate: 82.4, scale: "ICNE (CENEVAL)", campus: "Campus V, San Francisco de Campeche", modality: "Escolarizada" },
+  { career: "Enfermería", program: "Licenciatura en Enfermería", cutoff: 1022, max: 1230, applicants: 390, admitted: 162, admissionRate: 41.5, scale: "ICNE (CENEVAL)", campus: "Campus III, San Francisco de Campeche", modality: "Escolarizada" },
+  { career: "Fisioterapia", program: "Licenciatura en Fisioterapia", cutoff: 917, max: 1165, applicants: 134, admitted: 108, admissionRate: 80.6, scale: "ICNE (CENEVAL)", campus: "Campus I, San Francisco de Campeche", modality: "Escolarizada" },
+  { career: "Gerontología", program: "Licenciatura en Gerontología", cutoff: 904, max: 1083, applicants: 16, admitted: 16, admissionRate: 100, scale: "ICNE (CENEVAL)", campus: "Campus I, San Francisco de Campeche", modality: "Escolarizada" },
+  { career: "Psicología", program: "Licenciatura en Psicología", cutoff: 1004, max: 1213, applicants: 241, admitted: 149, admissionRate: 61.8, scale: "ICNE (CENEVAL)", campus: "Campus I, San Francisco de Campeche", modality: "Escolarizada" },
+  { career: "Médico Cirujano", program: "Licenciatura como Médico Cirujano", cutoff: 1235, max: 1291, applicants: 2004, admitted: 176, admissionRate: 8.8, scale: "ICNE (CENEVAL)", campus: "Campus III, San Francisco de Campeche", modality: "Escolarizada" },
+  { career: "Nutrición", program: "Licenciatura en Nutrición", cutoff: 874, max: 1226, applicants: 78, admitted: 69, admissionRate: 88.5, scale: "ICNE (CENEVAL)", campus: "Campus III, San Francisco de Campeche", modality: "Escolarizada" },
+  { career: "Cirujano Dentista", program: "Licenciatura como Cirujano Dentista", cutoff: 1035, max: 1235, applicants: 314, admitted: 156, admissionRate: 49.7, scale: "ICNE (CENEVAL)", campus: "Campus I, San Francisco de Campeche", modality: "Escolarizada" },
 ];
 
 const sheetCareers = [
@@ -374,8 +404,26 @@ function normalizeCareer(value) {
   return alias ? normalizeText(alias) : cleaned;
 }
 
-const cutoffs = Object.fromEntries(uady2026.map((item) => [normalizeCareer(item.career), item]));
-const uadyCareerOptions = uady2026.map((item) => item.career);
+const admissionBenchmarks = {
+  uady: {
+    label: "UADY 2026",
+    year: 2026,
+    careers: uady2026,
+  },
+  uac: {
+    label: "UAC 2026",
+    year: 2026,
+    careers: uac2026,
+  },
+};
+
+const uacAdmissionDisclaimer = "El ingreso a la Universidad Autónoma de Campeche se sujetará estrictamente a la disponibilidad de espacios en cada programa educativo en concordancia con los resultados obtenidos en el examen de admisión de la Universidad Autónoma de Campeche, debiendo obtener como mínimo 1100 puntos.";
+
+Object.values(admissionBenchmarks).forEach((benchmark) => {
+  benchmark.cutoffs = Object.fromEntries(
+    benchmark.careers.map((item) => [normalizeCareer(item.career), item])
+  );
+});
 
 const exaniOneBenchmarks = {
   general: {
@@ -441,6 +489,18 @@ function currentProfile() {
   return examProfiles[currentExamId] || examProfiles.exani2;
 }
 
+function currentAdmissionBenchmark() {
+  return normalizeConfigKey(selectedCampus()) === "campeche"
+    ? admissionBenchmarks.uac
+    : admissionBenchmarks.uady;
+}
+
+function currentCutoffLabel() {
+  return currentExamId === "exani1"
+    ? currentProfile().cutoffLabel
+    : currentAdmissionBenchmark().label;
+}
+
 function currentAreas() {
   return currentProfile().areas;
 }
@@ -454,7 +514,9 @@ function areaElementId(area, suffix) {
 }
 
 function currentCareerOptions() {
-  return currentExamId === "exani1" ? exaniOneCareers : uadyCareerOptions;
+  return currentExamId === "exani1"
+    ? exaniOneCareers
+    : currentAdmissionBenchmark().careers.map((item) => item.career);
 }
 
 function currentAreaLabel(code) {
@@ -472,8 +534,9 @@ function getCutoffForStudent(student) {
     };
   }
 
-  const cutoff = cutoffs[normalizeCareer(student.career)] || null;
-  return cutoff ? { ...cutoff, sourceLabel: "UADY 2026" } : null;
+  const benchmark = currentAdmissionBenchmark();
+  const cutoff = benchmark.cutoffs[normalizeCareer(student.career)] || null;
+  return cutoff ? { ...cutoff, sourceLabel: benchmark.label, sourceYear: benchmark.year } : null;
 }
 
 function getHistoryAverage() {
@@ -492,7 +555,7 @@ function cutoffMessageFor(student, cutoff, delta) {
   if (!cutoff) {
     return currentExamId === "exani1"
       ? `No encontré punto de corte para ${student.career}. Usa Preparatoria Uno, Preparatoria Dos o UABIC.`
-      : `No encontré un corte UADY 2026 para ${student.career}. Hay que agregar un alias de carrera.`;
+      : `No encontré un corte ${currentCutoffLabel()} para ${student.career}. Revisa que la carrera pertenezca al catálogo del campus seleccionado.`;
   }
 
   if (currentExamId === "exani1") {
@@ -502,9 +565,14 @@ function cutoffMessageFor(student, cutoff, delta) {
     return `Su puntaje ${position} del corte de ${cutoff.label} (${formatScore(cutoff.cutoff)}). Admitidos: ${cutoff.admitted} de ${cutoff.applicants} aspirantes (${cutoff.admissionRate}%). Puntaje máximo: ${formatScore(cutoff.max)}; media estatal: ${formatScore(exaniOneBenchmarks.general.mean)}.`;
   }
 
-  return delta >= 0
-    ? `El puntaje supera el corte UADY 2026 de ${student.career}. En 2026 ingresaron ${cutoff.admitted} de ${cutoff.applicants} aspirantes (${cutoff.admissionRate}%).`
-    : `Está a ${Math.abs(delta)} puntos del corte UADY 2026 de ${student.career}. En 2026 ingresaron ${cutoff.admitted} de ${cutoff.applicants} aspirantes (${cutoff.admissionRate}%).`;
+  const year = cutoff.sourceYear || currentAdmissionBenchmark().year;
+  const position = delta >= 0
+    ? `El puntaje supera por ${formatScore(delta)} puntos el corte ${cutoff.sourceLabel} de ${student.career}.`
+    : `Está a ${formatScore(Math.abs(delta))} puntos del corte ${cutoff.sourceLabel} de ${student.career}.`;
+  const admission = `En ${year} fueron aceptados ${cutoff.admitted} de ${cutoff.applicants} aspirantes registrados (${cutoff.admissionRate}%).`;
+  const maximum = Number.isFinite(cutoff.max) ? ` Puntaje máximo observado: ${formatScore(cutoff.max)}.` : "";
+  const scale = cutoff.scale ? ` Escala publicada: ${cutoff.scale}.` : "";
+  return `${position} ${admission}${maximum}${scale}`;
 }
 
 const els = {
@@ -516,6 +584,8 @@ const els = {
   areaCountCopy: document.querySelector(".section-title-row p"),
   cutoffBadge: document.querySelector(".cutoff-card .badge"),
   comparisonStatus: document.querySelector(".status-meta .status-item:nth-child(2) strong"),
+  cutoffReferenceLabel: document.querySelector("#cutoffReferenceLabel"),
+  uacAdmissionDisclaimer: document.querySelector("#uacAdmissionDisclaimer"),
   captureIntro: document.querySelector("#captureView .section-heading .muted"),
   answersTitle: document.querySelector("#answersGrid")?.closest(".panel")?.querySelector(".card-title"),
   captureAreaList: document.querySelector(".capture-area-list"),
@@ -689,6 +759,7 @@ const els = {
   printStudyFocus: document.querySelector("#printStudyFocus"),
   printNextGoal: document.querySelector("#printNextGoal"),
   printRecommendation: document.querySelector("#printRecommendation"),
+  printUacAdmissionDisclaimer: document.querySelector("#printUacAdmissionDisclaimer"),
 };
 
 function average(values) {
@@ -1120,12 +1191,21 @@ function renderOperatorStatus() {
   const campusSelect = document.querySelector("#campusSelect");
   if (campusSelect) {
     campusSelect.value = configuredCampus;
+    campusSelect.onchange = handleCampusChange;
   }
 }
 
 function selectedCampus() {
   const campusSelect = document.querySelector("#campusSelect");
   return normalizeCampus(campusSelect?.value || urlParams().get("campus") || appConfig().campus);
+}
+
+function handleCampusChange() {
+  renderExamControls();
+  renderCaptureLists();
+  renderStudentOptions();
+  updateCapturePreview();
+  updateAreaScorePreview();
 }
 
 function renderOptions() {
@@ -1150,6 +1230,8 @@ function allEvents() {
 
 function renderExamControls() {
   const profile = currentProfile();
+  const cutoffLabel = currentCutoffLabel();
+  const showUacDisclaimer = currentExamId === "exani2" && currentAdmissionBenchmark() === admissionBenchmarks.uac;
   if (els.examStatusItem && !document.querySelector("#examSelect")) {
     els.examStatusItem.classList.add("exam-status-item");
     els.examStatusItem.innerHTML = `
@@ -1180,10 +1262,16 @@ function renderExamControls() {
   if (els.scoreMessage && !els.scoreMessage.classList.contains("ok") && !els.scoreMessage.classList.contains("error")) {
     els.scoreMessage.textContent = `Lista para validar cuando captures ${profile.areas.length} puntajes por área.`;
   }
-  if (els.cutoffBadge) els.cutoffBadge.textContent = profile.cutoffLabel;
-  if (els.comparisonStatus) els.comparisonStatus.textContent = profile.cutoffLabel;
+  if (els.cutoffBadge) els.cutoffBadge.textContent = cutoffLabel;
+  if (els.comparisonStatus) els.comparisonStatus.textContent = cutoffLabel;
+  if (els.cutoffReferenceLabel) els.cutoffReferenceLabel.textContent = `Referencia ${cutoffLabel}`;
+  [els.uacAdmissionDisclaimer, els.printUacAdmissionDisclaimer].forEach((element) => {
+    if (!element) return;
+    element.hidden = !showUacDisclaimer;
+    element.textContent = showUacDisclaimer ? uacAdmissionDisclaimer : "";
+  });
   if (els.printExamName) els.printExamName.textContent = `Reporte de resultados ${profile.title}`;
-  if (els.printExamMeta) els.printExamMeta.textContent = `${profile.cutoffLabel} - Simulador de ${profile.questionCount} reactivos`;
+  if (els.printExamMeta) els.printExamMeta.textContent = `${cutoffLabel} - Simulador de ${profile.questionCount} reactivos`;
 }
 
 async function changeExam(examId) {
@@ -2035,15 +2123,7 @@ function renderReport(studentId) {
   els.cutoffMeter.style.background = isAboveCutoff ? "var(--green)" : "var(--red)";
   els.cutoffMeter.closest(".cutoff-card")?.classList.toggle("above-cutoff", isAboveCutoff);
   els.cutoffMeter.closest(".cutoff-card")?.classList.toggle("below-cutoff", Boolean(cutoff && delta < 0));
-  els.cutoffMessage.textContent = cutoff
-    ? delta >= 0
-      ? `Arriba del corte: +${formatScore(delta)} puntos sobre la referencia UADY 2026 de ${student.career}. En 2026 ingresaron ${cutoff.admitted} de ${cutoff.applicants} aspirantes (${cutoff.admissionRate}%).`
-      : `Está a ${Math.abs(delta)} puntos del corte UADY 2026 de ${student.career}. En 2026 ingresaron ${cutoff.admitted} de ${cutoff.applicants} aspirantes (${cutoff.admissionRate}%).`
-    : `No encontré un corte UADY 2026 para ${student.career}. Hay que agregar un alias de carrera.`;
-
-  if (currentExamId === "exani1") {
-    els.cutoffMessage.textContent = cutoffMessageFor(student, cutoff, delta);
-  }
+  els.cutoffMessage.textContent = cutoffMessageFor(student, cutoff, delta);
 
   renderDualScale(student);
 
@@ -2767,7 +2847,7 @@ function matchSheetCareer(value) {
       value.trim();
   }
   const normalizedCareer = normalizeCareer(value);
-  return uadyCareerOptions.find((career) => normalizeCareer(career) === normalizedCareer) || value.trim();
+  return currentCareerOptions().find((career) => normalizeCareer(career) === normalizedCareer) || value.trim();
 }
 
 function parseRosterLine(line) {

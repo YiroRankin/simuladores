@@ -113,6 +113,36 @@ const UADY_CAREERS = [
   "Turismo"
 ];
 
+const UAC_CAREERS = [
+  "Biólogo",
+  "Ingeniería Bioquímica Ambiental",
+  "Ingeniería en Alimentos y Biotecnología",
+  "Antropología",
+  "Ciencias Políticas y Administración Pública",
+  "Economía",
+  "Administración de Pymes",
+  "Administración y Finanzas",
+  "Contaduría",
+  "Derecho",
+  "Historia",
+  "Literatura",
+  "Ingeniería Civil y Administración",
+  "Ingeniería en Energía",
+  "Ingeniería en Mecatrónica",
+  "Ingeniería en Sistemas Computacionales",
+  "Ingeniería en Tecnología de Software",
+  "Ingeniería Mecánico Eléctrico",
+  "Médico Veterinario Zootecnista",
+  "Químico Farmacéutico Biólogo",
+  "Enfermería",
+  "Fisioterapia",
+  "Gerontología",
+  "Psicología",
+  "Médico Cirujano",
+  "Nutrición",
+  "Cirujano Dentista"
+];
+
 const EXANI_I_CAREERS = [
   "Preparatoria Uno",
   "Preparatoria Dos",
@@ -192,7 +222,7 @@ const EXAM_CONFIGS = {
     captureQuestionStartColumn: 10,
     keyStartColumn: 3,
     defaultKey: "CBBBCCBACCABAAAAACBBACBABBCCAABBCABBBABACBBCCACCBBBACBCCBAAC",
-    careers: UADY_CAREERS,
+    careers: UADY_CAREERS.concat(UAC_CAREERS),
     careerAliases: CAREER_ALIASES,
     areas: [
       { code: "ri", name: "Redaccion indirecta", start: 1, end: 20 },

@@ -36,6 +36,7 @@ Proyecto para construir una webapp interna de calificacion y reporte de resultad
 - `Claves`: clave oficial y comparacion respuesta-vs-clave.
 - `Resultados`: aciertos, puntajes CENEVAL por area y global.
 - `data/uady-2026.json`: cortes UADY 2026 y datos de demanda/admitidos.
+- `data/uac-2026.json`: cortes UAC 2026, puntajes máximos y datos de aspirantes registrados/aceptados; la app usa esta referencia al seleccionar el campus Campeche.
 - `concentrado_looker`: tabla plana actual para reporte.
 - `concentrado_looker_aplicacion`: promedios por evento/ano.
 
