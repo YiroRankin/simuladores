@@ -743,6 +743,16 @@ button:disabled {
   line-height: 1.5;
 }
 
+.benchmark-disclaimer {
+  margin: 12px 0 0;
+  padding: 10px 12px 0;
+  color: #615b78;
+  border-top: 1px solid rgba(86, 56, 183, 0.18);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
 .illustrated-panel-body {
   display: grid;
   grid-template-columns: minmax(0, 1fr) clamp(86px, 18vw, 150px);
@@ -2492,6 +2502,18 @@ button:disabled {
     font-size: 11.5px;
     font-weight: 700;
     line-height: 1.35;
+  }
+
+  .print-report .print-uac-disclaimer {
+    margin-top: 7px;
+    padding: 6px 9px;
+    color: #514b67;
+    background: #f7f5ff;
+    border-left: 3px solid var(--purple);
+    border-radius: 6px;
+    font-size: 8.5px;
+    line-height: 1.3;
+    break-inside: avoid;
   }
 
   .print-illustrated {
